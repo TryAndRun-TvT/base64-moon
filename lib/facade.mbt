@@ -1,3 +1,17 @@
+// lib/ —— **公共 API 外壳**（facade）。
+//
+// 本包（lib/facade.mbt）是唯一对使用者可见的层：它把内核（lib/internal/）的
+// 零分配接口**物化**成好用的 `String` / `Bytes` 形态，并持有「默认引擎」。
+//
+// 分层纪律（见 AGENTS.md §二.1 与
+// docs/01-规格/S1-rust-base64-移植可行性分析.md §9）：
+//   · 符号表 / padding / 错误语义一律在 lib/internal/ 落地，本层**不重复实现**；
+//   · 本层可以 import lib/internal/*，internal **不得**反向 import 本层；
+//   · `decode` 的入参最终要落在**字节视图**上（非 `String`），理由见 S1 §5.3。
+//
+// 现状：骨架期——本文件是「能过 RFC 4648 §10 官方向量」的最小实现（M0 前基线），
+// 按 docs/01-规格/S2-现状基线与迁移缺口.md §4 的路线图 M0→M5 逐步替换为内核调用。
+
 ///|
 /// Base64 字母表变体（RFC 4648）；由 `standard()` / `url_safe()` 取用。
 pub enum Alphabet {
@@ -31,7 +45,15 @@ fn encode_table(alphabet : Alphabet) -> FixedArray[Byte] {
 }
 
 ///|
-/// 把字节数组编码为 Base64 字符串（带 `=` 填充）。
+/// 把字节数组编码为 Base64 字符串。
+///
+/// > **目标签名（M2 落定）**：`encode(data, alphabet?, padding? : Bool = true) -> String`。
+/// > `padding=false` 是 URL-safe 场景的惯例形态，现状**无法产出无 padding 输出**
+/// > （缺口见 [S2 §2.3](docs/01-规格/S2-现状基线与迁移缺口.md)）。
+///
+/// TODO(M2)：把 `padding?` 透传给内核 `Config.encode_padding`。
+/// TODO(M3)：改为「默认引擎 + 内核 `encode_into` 写入 `FixedArray[Byte]`，末尾逐 `Char` 物化」——
+///   注意物化**不是**提速点（[S1 §6.1]），换实现只为消除每次调用现建表；输出须逐字节不变。
 pub fn encode(data : Bytes, alphabet? : Alphabet = Standard) -> String {
   let table = encode_table(alphabet)
   let out = StringBuilder()
@@ -87,6 +109,16 @@ fn decode_table(alphabet : Alphabet) -> FixedArray[Int] {
 
 ///|
 /// 解码 Base64 字符串（容忍缺失的 `=` 填充；遇非法字符返回 `Err`）。
+///
+/// > **目标签名（M0 落定）**：入参改**字节视图**、返回改 `Result[Bytes, DecodeError]`，
+/// > 并另出定长形态 `decode_slice(input, out) -> Result[Int, DecodeError]`。
+/// > 理由见 [S2 §2.4](docs/01-规格/S2-现状基线与迁移缺口.md)：
+/// > `String` 是 UTF-16，用它当字节源是**前提错**；`Err(String)` 是**程序没法用**。
+/// > 本函数保留为**便利重载**（转调内核），不是主入口。
+///
+/// TODO(M0)：落定签名后，本函数体改为 `decode(input_bytes)` 的薄转调。
+/// TODO(M1)：四条判据移入内核 `decode_into` / `decode_suffix`——本层**不再**做输入校验。
+/// TODO(M2)：透传 `padding_mode?` 与 `allow_trailing_bits?`。
 pub fn decode(
   text : String,
   alphabet? : Alphabet = Standard,
