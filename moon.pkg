@@ -1,0 +1,16 @@
+// 模块根的包（README 文档测试宿主）
+//
+// 为什么根要有一个（空）包：官方 README 约定是 `README.mbt.md` + `README.md` 符号链接，
+// 其中 `mbt check` 代码块由 `moon check` / `moon test` 当作 **document test** 编译并运行。
+// 而模块根的 `.md` 只有在根存在 `moon.pkg` 时才归属到一个包、才会被扫描。
+//
+// 本包**不含任何实现，也不导出任何 API**（空包，边界由 lib/ 承担）——
+// 见 README「项目结构」与 AGENTS.md §二.1。请**不要**在此处写库代码。
+import {
+  "TryAndRun-TvT/base64-moon/lib",
+}
+
+// `@lib` 只在文档测试（README.mbt.md 的 mbt check 块）里被用到，静态分析看不到，
+// 故这里显式关闭 unused_package 告警（编号 29）；除本文件外全仓仍按 `--deny-warn` 把关。
+
+warnings = "-29"

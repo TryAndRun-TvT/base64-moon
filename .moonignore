@@ -1,0 +1,20 @@
+# ── 继承 .gitignore（.moonignore 存在时不会自动合并，须重述）──
+/_build/
+/*.wasm
+/*.js
+*.mbti
+.Trash-*/
+.env*
+.DS_Store
+/node_modules/
+/package-lock.json
+# ── 发布归档额外排除 ──
+/scripts/
+/docs/
+/.cnb.yml
+/.githooks/
+/.codebuddy/
+/.vscode/
+/AGENTS.md
+**/*_test.mbt
+**/*_wbtest.mbt

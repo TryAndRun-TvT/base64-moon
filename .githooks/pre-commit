@@ -1,0 +1,26 @@
+#!/bin/sh
+# MoonBit 提交前校验钩子
+#
+# 官方 moon new 生成的钩子只执行 `moon check`。
+# 本仓库追加了 `moon fmt --check`，以防配置/代码格式腐化
+# （moon fmt 会格式化 moon.mod、moon.pkg 与所有 .mbt 文件）。
+#
+# 启用方式（每个克隆仓库的开发者需各执行一次）：
+#   chmod +x .githooks/pre-commit
+#   git config core.hooksPath .githooks
+#
+# 说明：本仓库不自动设置 core.hooksPath —— 该配置属于个人本地环境，
+# 由开发者自行决定是否启用。
+
+set -e
+
+if ! command -v moon >/dev/null 2>&1; then
+  echo "[pre-commit] 未找到 moon，跳过校验。请先安装 MoonBit 工具链。" >&2
+  exit 0
+fi
+
+echo "[pre-commit] moon fmt --check"
+moon fmt --check
+
+echo "[pre-commit] moon check"
+moon check

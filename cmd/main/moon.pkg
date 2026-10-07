@@ -1,0 +1,6 @@
+pkgtype(kind: "executable")
+
+import {
+  "TryAndRun-TvT/base64-moon/lib",
+  "moonbitlang/core/encoding/utf8",
+}

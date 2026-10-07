@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.mbt": "moonbit"
+  },
+  "editor.formatOnSave": false,
+  "[moonbit]": {
+    "editor.defaultFormatter": "moonbit.moonbit"
+  },
+  "files.eol": "\n"
+}
