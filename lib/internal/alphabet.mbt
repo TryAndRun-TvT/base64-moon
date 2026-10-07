@@ -3,10 +3,9 @@
 ///
 /// 与对外 `lib/Alphabet` 的区别：那个是**变体开关**（只认 `Standard` / `UrlSafe`），
 /// 这个是内核的**数据结构**，允许自定义符号集与填充字符
-/// （rust-base64 预置六张：Standard / UrlSafe / Crypt / Bcrypt / IMAP-MUTF7 / BinHex）。
+/// （crate 预置六张：Standard / UrlSafe / Crypt / Bcrypt / IMAP-MUTF7 / BinHex）。
 ///
-/// > 骨架期：仅声明形态与不变量，**实现待 M3**。
-/// > 不变量：`symbols` 恒为 64 字节；`padding` 不出现在 `symbols` 里（否则反查表自相矛盾）。
+/// 不变量：`symbols` 恒为 64 字节；`padding` 不出现在 `symbols` 里。
 pub struct Alphabet {
   /// 64 个编码符号，下标即 6 位值。
   symbols : FixedArray[Byte]
@@ -15,17 +14,26 @@ pub struct Alphabet {
 }
 
 ///|
-/// 构造标准字母表（`+` / `/`，padding `=`）。
-///
-/// TODO(M3)：从 `b"ABC…+/"` 构造，是 `pub fn Alphabet::standard()` 的内核形式。
+/// 标准字母表（`+` / `/`，padding `=`）。
 pub fn Alphabet::standard() -> Alphabet {
-  abort("TODO(M3): 内核 standard() —— 64 符号 + padding `=`")
+  {
+    symbols: b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".to_fixedarray(),
+    padding: b'=',
+  }
 }
 
 ///|
-/// 构造 URL-safe 字母表（`-` / `_`，padding `=`）。
+/// URL-safe 字母表（`-` / `_`，padding `=`）。
 ///
-/// TODO(M3)：与 `standard()` 只差两个符号，实现时勿复制整串字面量（用替换或常量表）。
+/// 与 `standard()` 只差**两个位置**（62 / 63），不是两个「ASCII 码」：
+/// 表的下标是 6 位值，不是字符的码点。写成 `symbols[b'+'.to_int()]` 会把
+/// 43 号位置（`q` 的槽）改成 `-`——这错曾被 `encode_urlsafe_uses_alt_chars` 抓到。
+///
+/// 复制这一步同样不能省：`FixedArray` 是引用语义，原地改会连带改掉标准表，
+/// 于是 `encode(x)` 与 `encode(x, alphabet=url_safe())` 输出相同。
 pub fn Alphabet::url_safe() -> Alphabet {
-  abort("TODO(M3): 内核 url_safe() —— 仅 `+`→`-`、`/`→`_`")
+  let symbols = Alphabet::standard().symbols.copy()
+  symbols[62] = b'-'
+  symbols[63] = b'_'
+  { symbols, padding: b'=', }
 }

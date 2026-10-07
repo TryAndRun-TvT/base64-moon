@@ -39,8 +39,8 @@
 ## 功能特性
 
 - **纯 MoonBit 实现**，无外部依赖，可直接 `moon add` 依赖到你的项目。
-- **标准合规**：RFC 4648 —— 标准字母表（`+` / `/`）与 URL-safe 字母表（`-` / `_`）。
-- **编码 + 解码**：`encode` 输出带 `=` 填充的标准串；`decode` 容忍缺失填充并对非法字符返回 `Err`。
+- **标准合规**：RFC 4648 —— 标准字母表（`+` / `/`）与 URL-safe 字母表（`-` / `_`），含/不含 padding 都可编。
+- **编码 + 解码**：`encode` 默认输出带 `=` 填充的标准串（`padding=false` 可省）；`decode` 默认按 `RequireCanonical` 校验 padding，错误**带 offset**。
 - **单一后端产物**：仅 `wasm-gc`（体积小、性能好；宿主需支持 GC 提案）。
 
 > **实现状态**：**骨架阶段**。已落地 `encode` / `decode` 与字母表变体（测试覆盖 RFC 4648 官方向量），
@@ -70,12 +70,16 @@ import {
 test "readme_quick_start" {
   let bytes = b"foobar"
   assert_eq(@lib.encode(bytes), "Zm9vYmFy")
-  assert_eq(@lib.decode("Zm9vYmFy"), Ok(bytes))
+  @lib.expect_decoded(@lib.decode(b"Zm9vYmFy"[:]), bytes)
   // URL-safe 字母表：`+` / `/` 换成 `-` / `_`
   assert_eq(
     @lib.encode(b"\xfb\xff", alphabet=@lib.Alphabet::url_safe()),
     "-_8=",
   )
+  // 无 padding 形态（URL-safe 场景惯例）
+  assert_eq(@lib.encode(b"foob", padding=false), "Zm9vYg")
+  // 解码错误可定位：offset + 出错字节
+  @lib.expect_invalid_byte(@lib.decode(b"Zm9v!"[:]), 4, 33)
 }
 ```
 
@@ -120,9 +124,10 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 |-------|------|
 | **刚接手这个仓库** | [仓库初始化配置说明](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md)（配置来源与落地过程） |
 | **改代码 / 提 PR** | [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/AGENTS.md)（**硬性约定**） |
-| **定实现方案 / 评估工作量** | [S1 可行性分析](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S1-rust-base64-移植可行性分析.md)（**API 兼容边界 + `no_std` 分档**）→ [S2 现状基线与迁移缺口](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S2-现状基线与迁移缺口.md)（**签名决策 + 路线图**） |
+| **定实现方案 / 评估工作量** | [S1 可行性分析](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S1-rust-base64-移植可行性分析.md)（**API 兼容边界 + `no_std` 分档**）→ [S2 现状基线与迁移缺口](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S2-现状基线与迁移缺口.md)（**签名决策 + 路线图**）→ [S5 实施裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S5-实施裁决与M1落地.md)（**实测真值**） |
 | **看代码该写在哪个文件** | [S3 架构分层与子包职责](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S3-架构分层与子包职责.md)（**三层分层 + 子包职责表 + 思维导图**） |
 | **动手写 M0–M5 的代码** | [S4 实施规格与落地顺序](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S4-实施规格与落地顺序.md)（**每阶段动作清单 + 判据矩阵 + 复跑命令 + 回退条件**） |
+| **看实测真值与裁决** | [S5 实施裁决与 M1 落地](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S5-实施裁决与M1落地.md)（**crate 对拍真值表 + S4 与实测冲突处 + MoonBit 包边界约束**） |
 | **看文档全量清单** | [docs/README.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md)（目录首页 + 生成式清单） |
 | **配置从哪来** | [仓库初始化配置说明 §2](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md#2-实现记录)（逐路径对照表） |
 
@@ -150,7 +155,8 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 │       ├── config.mbt           #   padding / 冗余位 / padding 强度
 │       ├── error.mbt            #   suberror DecodeError（4 类可定位）
 │       ├── engine.mbt           #   Engine：表缓存
-│       ├── encode.mbt           #   编码内核（slice 进 slice 出）
+│       ├── encode.mbt           #   编码内核（slice 进 slice 出，不写 padding）
+│       ├── pad.mbt              #   补 padding（全库唯一写 `=` 的地方）
 │       └── decode.mbt           #   解码内核（4 判据 + 后缀校验）
 ├── cmd/main/                   # 可执行包：CLI
 ├── docs/                       # 项目文档（入口 = docs/README.md，见「文档索引」）
