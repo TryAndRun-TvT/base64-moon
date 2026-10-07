@@ -1,0 +1,16 @@
+// lib/internal —— **零分配内核**（slice 进 / slice 出）。
+//
+// 分层依据：`docs/01-规格/S1-rust-base64-移植可行性分析.md` §9 的 `no_std` 分档。
+//   rust-base64 把 `encode_slice` / `decode_slice` 放在 `alloc` 门控之外，
+//   即「内核不分配，物化在外壳」。本包照抄这个分层：
+//     · 本包**只**接受 / 返回 `Bytes` / `BytesView` / `FixedArray[Byte]`（零分配）；
+//     · **不 import `lib`**（依赖方向无环，MoonBit 禁止 import 环）；
+//     · `String` 一律不出现在签名里（`Bytes -> String` 是重解释，见 S1 §5.3）。
+//
+// 【骨架期的 warnings 处置，M1–M3 落地后须逐条移除】
+//   骨架只定「形态」不写「实现」，于是静态分析看不到构造点 / 使用点。
+//   这里按「逐一列出编号 + 说明为何可关」处理，**不**用大范围 `-a`（会吞掉真告警）：
+//     · -6  unused_constructor     : `DecodeError` / `DecodePaddingMode` 变体待 M1/M2 构造；
+//     · -9  struct_never_constructed: `Alphabet` / `Config` / `Engine` 待 M3 构造。
+//   纪律：每个 TODO 落地后，**同一 PR 内**移除对应编号——留在配置里 = 埋雷。
+warnings = "-6-9"

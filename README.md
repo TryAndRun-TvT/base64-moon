@@ -121,6 +121,7 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 | **刚接手这个仓库** | [仓库初始化配置说明](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md)（配置来源与落地过程） |
 | **改代码 / 提 PR** | [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/AGENTS.md)（**硬性约定**） |
 | **定实现方案 / 评估工作量** | [S1 可行性分析](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S1-rust-base64-移植可行性分析.md)（**API 兼容边界 + `no_std` 分档**）→ [S2 现状基线与迁移缺口](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S2-现状基线与迁移缺口.md)（**签名决策 + 路线图**） |
+| **看代码该写在哪个文件** | [S3 架构分层与子包职责](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S3-架构分层与子包职责.md)（**三层分层 + 子包职责表 + 思维导图**） |
 | **看文档全量清单** | [docs/README.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md)（目录首页 + 生成式清单） |
 | **配置从哪来** | [仓库初始化配置说明 §2](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md#2-实现记录)（逐路径对照表） |
 
@@ -140,8 +141,16 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 .
 ├── moon.mod                    # MoonBit 模块配置
 ├── moon.pkg                    # 模块根空包：README 文档测试宿主（不写库代码）
-├── lib/                        # 库包（公共 API）
-│   └── internal/               # 实现子包（各带 moon.pkg；不反向依赖 lib）
+├── lib/                        # 公共 API 外壳（物化 + 默认引擎）
+│   ├── facade.mbt              #   对外 pub API
+│   └── internal/               # 零分配内核（不反向依赖 lib）
+│       ├── alphabet.mbt         #   字母表结构（64 符号 + padding）
+│       ├── tables.mbt           #   编码表 / 反查表构造
+│       ├── config.mbt           #   padding / 冗余位 / padding 强度
+│       ├── error.mbt            #   suberror DecodeError（4 类可定位）
+│       ├── engine.mbt           #   Engine：表缓存
+│       ├── encode.mbt           #   编码内核（slice 进 slice 出）
+│       └── decode.mbt           #   解码内核（4 判据 + 后缀校验）
 ├── cmd/main/                   # 可执行包：CLI
 ├── docs/                       # 项目文档（入口 = docs/README.md，见「文档索引」）
 │   ├── README.md               #   目录首页：读者路径 + 分类地图 + 全量清单
