@@ -12,6 +12,12 @@
 /// `decode_suffix`（尾巴，判据 2/3/4 的唯一落点）。
 ///
 /// **错误优先级照 crate 实测，不照直觉**（汇总见 [S5 §3](docs/01-规格/S5-实施裁决与M1落地.md)）。
+///
+/// **热循环形态 = 显式 4 条查表 + 合并判错 + 冷路径定位**（[S10](docs/01-规格/S10-去内循环落地与端到端对照.md)）：
+/// [S9 §4](docs/01-规格/S9-M5语义矩阵与32位装载裁决.md) 实测「`for k` 内循环本身就是成本」——
+/// 去掉它、把 4 个 morsel 摆成显式 `let`，热循环段从 0.71× 降到 **0.65×**（再快约 8%）。
+/// 判错从「逐符号 4 个分支」合并成一个 `acc < 0`（见 `locate_invalid_byte` 的等价性说明），
+/// offset 精度靠**冷路径**（出错才走）保证。
 
 ///|
 /// 估算解码后的字节数上界（用于预分配输出缓冲）。
@@ -86,14 +92,13 @@ pub fn decode_into(
   let mut i = 0
   let mut o = 0
   while i < quads_end {
-    let mut acc = 0
-    for k = 0; k < 4; k = k + 1 {
-      let byte = input[i + k]
-      let morsel = table[byte.to_int()]
-      if morsel < 0 {
-        return Err(DecodeFailed(InvalidByte(i + k, byte)))
-      }
-      acc = (acc << 6) | morsel
+    let b0 = table[input[i].to_int()]
+    let b1 = table[input[i + 1].to_int()]
+    let b2 = table[input[i + 2].to_int()]
+    let b3 = table[input[i + 3].to_int()]
+    let acc = (b0 << 18) | (b1 << 12) | (b2 << 6) | b3
+    if acc < 0 {
+      return Err(locate_invalid_byte(table, input, i))
     }
     out[o] = ((acc >> 16) & 0xFF).to_byte()
     out[o + 1] = ((acc >> 8) & 0xFF).to_byte()
@@ -103,6 +108,34 @@ pub fn decode_into(
   }
   // ④ 尾巴
   decode_suffix(table, padding, engine.config, input, i, o, out)
+}
+
+///|
+/// 冷路径：在完整 4 元组内**定位第一个非法符号**，返回 `InvalidByte(绝对下标, 字节)`。
+///
+/// 为什么单独成函数（不在热循环里内联）：合并判错（`acc < 0`）本身不含「哪个符号错」，
+/// 而要报精确 offset 就得重扫这 4 个下标。把它**外提**后，热路径只剩一个分支，
+/// 实测（185 KB）**0.65× vs 逐符号判错的 0.68×** —— 内联的定位代码反而会拖慢热循环
+/// （[S10 §3](docs/01-规格/S10-去内循环落地与端到端对照.md)）。
+///
+/// **`acc < 0` ⟺ 「四个 morsel 里至少一个为负」的等价性**（合并判错的前提）：
+/// `acc = (b0<<18)|(b1<<12)|(b2<<6)|b3`，morsel ∈ {-1} ∪ [0, 63]。
+/// MoonBit 的 `Int` 是 **31 位有效位 + 符号位**（见 `decode_suffix` 里 `UInt` 那条注释），
+/// `-1` 的位模式是全 1；故任一 `b<0` 都会把 `acc` 的高位置 1（`acc<0`）。
+/// 反向：全 `b ∈ [0,63]` 时 `acc = b0<<18 | …` 上界 `0xFFFFFF`（24 位），恒 ≥ 0。
+/// **全部 65⁴ = 17 850 625 种组合穷举验证过**（复跑见 S10 §5），故等价。
+fn locate_invalid_byte(
+  table : FixedArray[Int],
+  input : BytesView,
+  start : Int,
+) -> DecodeSliceError {
+  for k = 0; k < 4; k = k + 1 {
+    if table[input[start + k].to_int()] < 0 {
+      return DecodeFailed(InvalidByte(start + k, input[start + k]))
+    }
+  }
+  // 不可达：调用方只在 `acc < 0` 时进来，而 `acc < 0` 等价于「至少一个非法」。
+  DecodeFailed(InvalidByte(start, input[start]))
 }
 
 ///|
