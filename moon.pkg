@@ -6,6 +6,17 @@
 //
 // 本包**不含任何实现，也不导出任何 API**（空包，边界由 lib/ 承担）——
 // 见 README「项目结构」与 AGENTS.md §二.1。请**不要**在此处写库代码。
+//
+// 【为什么只声明 `lib` 而不声明 `lib/internal`，以及这带来什么】
+// `lib/internal` 是 internal 包，按 MoonBit 可见性规则，**本包不得 import 它**
+// （`Cannot import internal package ... due to internal visibility rules`）。
+// 由此文档测试里有两件事做不到，README 的示例据此改写：
+//   1. 用不写包限定的变体名匹配错误（`Err(InvalidByte(..))`）——需要 internal
+//      包参与变体解析；
+//   2. 对 `Result[_, DecodeError]` 做 `assert_eq(.., Ok(..))`——`Eq` / `Debug`
+//      的 impl 由 internal 包提供，本包看不见。
+// 出路是 `lib` 提供的 `@lib.expect_*` 断言：构造与比较都留在 `lib` 内部完成。
+// 实录见 docs/01-规格/S5-实施裁决与M1落地.md §4。
 import {
   "TryAndRun-TvT/base64-moon/lib",
 }
