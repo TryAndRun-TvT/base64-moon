@@ -1,0 +1,22 @@
+# MoonBit 构建产物
+/_build/
+/*.wasm
+/*.js
+
+# moon info 生成的公共接口文件（构建产物）
+*.mbti
+
+# 编辑器/工具产生的垃圾箱目录（会被误 git add -A）
+.Trash-*/
+.Trash-*/**
+
+# 本地环境
+.env*
+.DS_Store
+
+# 审计脚本的 npm 依赖（仅本地，不入 push CI）
+/node_modules/
+/package-lock.json
+
+# 参考仓库检出（对照/生成黄金值用，仅本地）
+/fast_qr/

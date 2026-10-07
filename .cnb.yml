@@ -1,0 +1,25 @@
+# base64-moon 云原生构建配置
+# 说明：CPU 设置为 2，未启用 docker 服务
+#
+# 配置结构:
+#   vscode — 云原生开发环境启动时初始化 MoonBit 工具链
+#
+# 关于 push 流水线的取舍：
+#   本项目暂不启用 push 流水线（全量构建+测试对当前迭代节奏收益不成比例）。
+#   门禁**不因不启用而失效**：全部阶段命令抽离在 `scripts/` 下，一条命令跑全量：
+#
+#     bash scripts/gates.sh                        # 跑全部阶段（阶段清单以脚本输出为准）
+#     STAGES="check test" bash scripts/gates.sh    # 只跑指定阶段
+#     SKIP_SLOW=1        bash scripts/gates.sh     # 跳过耗时阶段（build-and-run）
+#
+#   若日后需启用 CI，把 `bash scripts/gates.sh` 作为单个 stage 挂到 `push:` 即可（脚本零改动）。
+
+$:
+  vscode:
+    - runner:
+        cpus: 2
+      services:
+        - vscode
+      stages:
+        - name: setup-moonbit-toolchain
+          script: bash scripts/setup-moonbit.sh
