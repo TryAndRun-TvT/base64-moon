@@ -128,7 +128,8 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 | **看代码该写在哪个文件** | [S3 架构分层与子包职责](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S3-架构分层与子包职责.md)（**三层分层 + 子包职责表 + 思维导图**） |
 | **动手写 M0–M5 的代码** | [S4 实施规格与落地顺序](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S4-实施规格与落地顺序.md)（**每阶段动作清单 + 判据矩阵 + 复跑命令 + 回退条件**） |
 | **看实测真值与裁决** | [S5 实施裁决与 M1 落地](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S5-实施裁决与M1落地.md)（**crate 对拍真值表 + S4 与实测冲突处 + MoonBit 包边界约束**） |
-| **看性能数字 / 想复跑** | [S6 性能实测与 M3 裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S6-性能实测与M3裁决.md)（**建表占比、引擎复用收益、738 例对拍、过期口径清账**）→ [S7 M4 性能前提复跑与裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S7-M4性能前提复跑与裁决.md)（**M4 的 chunk 化为什么不做**） |
+| **看 M5 落了什么** | [S9 M5 语义矩阵与 32 位装载裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S9-M5语义矩阵与32位装载裁决.md)（**四条不变量 + CPython 定值对拍、待测项结清**） |
+| **看性能数字 / 想复跑** | [S6 性能实测与 M3 裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S6-性能实测与M3裁决.md)（**建表占比、引擎复用收益、738 例对拍、过期口径清账**）→ [S7 M4 性能前提复跑与裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S7-M4性能前提复跑与裁决.md)（**M4 的 chunk 化为什么不做**）→ [S9 M5 语义矩阵与 32 位装载裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S9-M5语义矩阵与32位装载裁决.md)（**M5 语义矩阵、32 位装载零收益、去内循环待落地**） |
 | **看文档全量清单** | [docs/README.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md)（目录首页 + 生成式清单） |
 | **配置从哪来** | [仓库初始化配置说明 §2](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md#2-实现记录)（逐路径对照表） |
 
