@@ -124,10 +124,11 @@ bash scripts/gates.sh                 # 全量；支持 STAGES="check test" / SK
 |-------|------|
 | **刚接手这个仓库** | [仓库初始化配置说明](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md)（配置来源与落地过程） |
 | **改代码 / 提 PR** | [AGENTS.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/AGENTS.md)（**硬性约定**） |
-| **定实现方案 / 评估工作量** | [S1 可行性分析](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S1-rust-base64-移植可行性分析.md)（**API 兼容边界 + `no_std` 分档**）→ [S2 现状基线与迁移缺口](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S2-现状基线与迁移缺口.md)（**签名决策 + 路线图**）→ [S5 实施裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S5-实施裁决与M1落地.md)（**实测真值**） |
+| **定实现方案 / 评估工作量** | [S1 可行性分析](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S1-rust-base64-移植可行性分析.md)（**API 兼容边界 + `no_std` 分档**）→ [S2 现状基线与迁移缺口](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S2-现状基线与迁移缺口.md)（**签名决策 + 路线图**）→ [S5 实施裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S5-实施裁决与M1落地.md)（**实测真值**）→ [S6 性能实测与 M3 裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S6-性能实测与M3裁决.md)（**性能真值**） |
 | **看代码该写在哪个文件** | [S3 架构分层与子包职责](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S3-架构分层与子包职责.md)（**三层分层 + 子包职责表 + 思维导图**） |
 | **动手写 M0–M5 的代码** | [S4 实施规格与落地顺序](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S4-实施规格与落地顺序.md)（**每阶段动作清单 + 判据矩阵 + 复跑命令 + 回退条件**） |
 | **看实测真值与裁决** | [S5 实施裁决与 M1 落地](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S5-实施裁决与M1落地.md)（**crate 对拍真值表 + S4 与实测冲突处 + MoonBit 包边界约束**） |
+| **看性能数字 / 想复跑** | [S6 性能实测与 M3 裁决](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/01-规格/S6-性能实测与M3裁决.md)（**建表占比、引擎复用收益、738 例对拍、过期口径清账**） |
 | **看文档全量清单** | [docs/README.md](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md)（目录首页 + 生成式清单） |
 | **配置从哪来** | [仓库初始化配置说明 §2](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/03-过程/仓库初始化配置说明.md#2-实现记录)（逐路径对照表） |
 

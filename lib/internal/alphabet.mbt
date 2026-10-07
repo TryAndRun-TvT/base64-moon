@@ -27,7 +27,8 @@ pub fn Alphabet::standard() -> Alphabet {
 ///
 /// 与 `standard()` 只差**两个位置**（62 / 63），不是两个「ASCII 码」：
 /// 表的下标是 6 位值，不是字符的码点。写成 `symbols[b'+'.to_int()]` 会把
-/// 43 号位置（`q` 的槽）改成 `-`——这错曾被 `encode_urlsafe_uses_alt_chars` 抓到。
+/// 43 号位置（`r` 的槽）改成 `-`——这错曾被 `encode_urlsafe_uses_alt_chars` 抓到。
+/// （`q` 是 42 号槽；43 是 `r`。这处注释先前写错了，白盒用例 `url_safe_is_an_independent_copy` 抓到。）
 ///
 /// 复制这一步同样不能省：`FixedArray` 是引用语义，原地改会连带改掉标准表，
 /// 于是 `encode(x)` 与 `encode(x, alphabet=url_safe())` 输出相同。
