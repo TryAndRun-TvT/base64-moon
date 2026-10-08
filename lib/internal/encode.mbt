@@ -1,18 +1,17 @@
 ///|
 /// 编码内核（**零分配**：`BytesView` 进 / `FixedArray[Byte]` 出）。
 ///
-/// 为什么是 `BytesView`：对齐 crate 的 `AsRef<[u8]>`，且零拷贝
-/// （[S1 §4](docs/01-规格/S1-rust-base64-移植可行性分析.md) 的「输入缓冲」一行）。
-/// 为什么不是 `String`：`String` 是 UTF-16，字节与字符之间没有免费的桥（[S1 §5.3]）。
+/// 为什么是 `BytesView`：对齐 crate 的 `AsRef<[u8]>`，且零拷贝。
+/// 为什么不是 `String`：`String` 是 UTF-16，字节与字符之间没有免费的桥
+/// （[S1 §5.3](docs/01-规格/S1-rust-base64-移植可行性分析.md)）。
 
 ///|
-/// 估算编码后的字节数（**含 padding**，即对齐 crate 的 `encoded_len(n, true)`）。
+/// 估算编码后的字节数（**含 padding**，对齐 crate 的 `encoded_len(n, true)`）。
 ///
-/// 对齐 crate 的 `internal_encoded_len_estimate`；**不产生输出**，只算长度。
-/// 定长输出 API（`encode_slice`）靠它预先分配，是本层零分配能成立的前提。
-///
-/// 口径：`((len + 2) / 3) * 4`。`len = 0` 时为 0；`len % 3 ∈ {1,2}` 时按整组上取整。
+/// 口径 `((len + 2) / 3) * 4`：`len = 0` 时为 0；`len % 3 ∈ {1,2}` 时按整组上取整。
 /// 实测对照（crate `encoded_len(n, true)`）：0→0、1→4、2→4、3→4、4→8、7→12。
+///
+/// 定长输出 API（`encode_slice`）靠它预先分配——这是零分配能成立的前提。
 pub fn encoded_len(input : BytesView) -> Int {
   (input.length() + 2) / 3 * 4
 }
@@ -20,10 +19,11 @@ pub fn encoded_len(input : BytesView) -> Int {
 ///|
 /// 编码内核：把 `input` 编码写入 `out`，返回**实际写入的有效符号数**（不含 padding）。
 ///
-/// 对齐 crate 的 `internal_encode`。这是 [S2 §2.4](docs/01-规格/S2-现状基线与迁移缺口.md)
-/// 定下的**签名命门**之一：`FixedArray[Byte]` 能对齐 Rust 的 `&mut [u8]`，而 `String` 不能。
+/// 对齐 crate 的 `internal_encode`。签名里的 `FixedArray[Byte]` 对齐 Rust 的
+/// `&mut [u8]`——`String` 做不到这一点，这是定长输出 API 的前提。
 ///
-/// **本函数不写 padding**（唯一写点是 `pad.mbt` 的 `add_padding`，见 S4 §2.1）。
+/// **本函数不写 padding**（唯一写点是 `pad.mbt` 的 `add_padding`）：
+/// 分块编码器要逐块输出，内核一旦自己补 `=` 就没法复用了。
 ///
 /// 前置：`out.length() >= encoded_len(input)`。
 pub fn encode_into(
@@ -48,6 +48,7 @@ pub fn encode_into(
     i += 3
     o += 4
   }
+  // 尾巴：`n - i` ∈ {0, 1, 2}，只写有效符号，不补 `=`。
   match n - i {
     1 => {
       let b0 = input[i].to_int()

@@ -1,12 +1,5 @@
 // 库包（公共 API 外壳）——把 lib/internal/ 的零分配内核物化成 Bytes / String 形态。
-//
-// 为什么要显式 import `builtin`：`expect_decoded` 等的比较逻辑用到 core 的
-// `Eq` / `Debug` impl；本包作为 `DecodeError` 别名的持有者，需要它们在本包可见。
-// 注意这**不能**让包外的 `assert_eq(@lib.decode(..), Ok(..))` 通过——
-// 那两个 impl 由 `lib/internal` 提供，而 external 包不得 import internal。
-// 包外要按形状断言，走本包导出的 `@lib.expect_*`。
 import {
   "TryAndRun-TvT/base64-moon/lib/internal",
-  "moonbitlang/core/builtin",
   "moonbitlang/core/encoding/utf8",
 }

@@ -1,11 +1,8 @@
 ///|
 /// 内核配置：编码 / 解码的开关（对齐 rust-base64 的 `GeneralPurposeConfig`）。
 ///
-/// 对齐表见 [S1 §3.2](docs/01-规格/S1-rust-base64-移植可行性分析.md)；
-/// 现状缺口见 [S2 §2.3](docs/01-规格/S2-现状基线与迁移缺口.md)。
-///
 /// 纪律：这些开关是**命名参数**（`padding?` / `padding_mode?`），不是新函数——
-/// 一旦拆成 `encode_unpadded()` 之类，就是固化了 crate 已废弃的 8 个自由函数（S1 §9.3）。
+/// 一旦拆成 `encode_unpadded()` 之类，就是固化了 crate 已废弃的 8 个自由函数。
 pub struct Config {
   /// 编码输出是否追加 `=` 填充。默认 `true`；URL-safe 场景惯例传 `false`。
   encode_padding : Bool
@@ -42,9 +39,8 @@ pub fn Config::new(
 ///|
 /// 默认配置：`padding = true` / `trailing_bits = false` / `RequireCanonical`。
 ///
-/// > **`RequireCanonical` 是实测值，不是选出来的**：crate `GeneralPurposeConfig::new()`
-/// > 实测即此值（[S5 §2.1](docs/01-规格/S5-实施裁决与M1落地.md)）。
-/// > 骨架期本文件曾把注释写成 `Indifferent` —— 那条是错的，已随 M1 更正。
+/// > `RequireCanonical` 是**实测值，不是选出来的**：crate `GeneralPurposeConfig::new()`
+/// > 实测即此（[S5 §2.1](docs/01-规格/S5-实施裁决与M1落地.md)）。
 pub fn Config::default() -> Config {
   Config::new(true, false, RequireCanonical)
 }

@@ -15,8 +15,8 @@
 //      包参与变体解析；
 //   2. 对 `Result[_, DecodeError]` 做 `assert_eq(.., Ok(..))`——`Eq` / `Debug`
 //      的 impl 由 internal 包提供，本包看不见。
-// 出路是 `lib` 提供的 `@lib.expect_*` 断言：构造与比较都留在 `lib` 内部完成。
-// 实录见 docs/01-规格/S5-实施裁决与M1落地.md §4。
+// 出路是 `@lib.describe` 与 `.unwrap().unwrap_err()`：展示与取值都留在 `lib` 外侧完成。
+// 实录见 docs/01-规格/S5-实施裁决与M1落地.md §3。
 import {
   "TryAndRun-TvT/base64-moon/lib",
 }

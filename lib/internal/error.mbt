@@ -1,19 +1,16 @@
 ///|
 /// 内核错误类型：**4 类可定位错误**（对齐 rust-base64 0.23.1 的 `DecodeError`）。
 ///
-/// 现状缺口见 [S2 §2.1 / §2.2](docs/01-规格/S2-现状基线与迁移缺口.md)：
-/// 骨架期的 `decode` 返回 `Err(String)`——**人有得看、程序没法用**（拿不到 offset）。
-///
-/// 用 `suberror` 而非普通 `enum`：`Result[_, DecodeError]` 与 `raise` 两种调用风格
+/// 用 `suberror` 而非 `enum`：`Result[_, DecodeError]` 与 `raise` 两种调用风格
 /// 都能挂同一个类型，且能 `derive` 做展示（`String` 只作展示，不作契约）。
 ///
-/// **变体的字段值不是「大概齐」**：每个变体在什么条件下产生、offset 取哪个下标，
-/// 逐条实测自 crate 0.23.1，汇总见
-/// [S5 §2](docs/01-规格/S5-实施裁决与M1落地.md)。
+/// **字段值是实测的，不是推断的**：每个变体在什么条件下产生、`offset` 取哪个下标，
+/// 逐条实测自 crate 0.23.1（[S5 §2](docs/01-规格/S5-实施裁决与M1落地.md)）。
 ///
-/// > **枚举对其它包是只读的**（`Cannot create values of the read-only type`）：
-/// > 变体的构造点只能在本包。外壳要报同一种错误，必须经本包提供的
-/// > **具名构造器**（见文件末）——这不是审美选择，是 MoonBit 的包边界。
+/// **变体只能在本包构造**——枚举对其它包是只读的
+/// （`Cannot create values of the read-only type`），故包外不需要「具名构造器」：
+/// 定义包写 `InvalidByte(4, b'!')` 即可，别的包既构造不出也没必要构造。
+/// 外壳 `lib/` 只做类型重命名与错误透传，它自己的测试按形状断言（见 `lib/facade.mbt`）。
 pub suberror DecodeError {
   /// 输入中混入了非字母表字节（padding 也算非法，除非它在合法位置）。
   /// `offset` = 0 基下标，`byte` = 原始字节。
@@ -32,29 +29,33 @@ pub suberror DecodeError {
 ///|
 /// `decode_slice` 的返回错误：**解码失败**与**我给你的缓冲太小**是两件事。
 ///
-/// 对齐 crate 的 `DecodeSliceError`（2 变体）。混进 `DecodeError` 会让调用方
-/// 分不清「输入坏」和「我给小了」——前者该改数据，后者该放大缓冲。
+/// 对齐 crate 的 `DecodeSliceError`。混进 `DecodeError` 会让调用方分不清
+/// 「输入坏」（该改数据）和「我给小了」（该放大缓冲）。
 ///
-/// 优先级（**实测**，见 [S5 §3](docs/01-规格/S5-实施裁决与M1落地.md)）：
-/// 尾部 `rem == 1` 的便利检查 → 输出缓冲够不够 → 才轮到 padding 位置。
-/// 所以 `decode_slice("=Zm9v", 1 字节缓冲)` 报 `OutputSliceTooSmall` 而不是 `InvalidByte`。
+/// 优先级**实测自 crate**：尾部 `rem == 1` 的便利检查 → 缓冲够不够 → 才轮到
+/// 「padding 出现在位置 0/1」。故 `decode_slice("=Zm9v", 1 字节缓冲)` 报
+/// `OutputSliceTooSmall` 而不是 `InvalidByte`
+/// （[S5 §3](docs/01-规格/S5-实施裁决与M1落地.md)）。
 pub suberror DecodeSliceError {
-  /// 输入本身解不出来。`offset` / `byte` 语义同 `DecodeError`。
+  /// 输入本身解不出来。字段语义同 `DecodeError`。
   DecodeFailed(DecodeError)
   /// 输出缓冲不足。**不是**解码错误。
   OutputSliceTooSmall
 } derive(Debug, Eq)
 
 ///|
-/// `encode_slice` 的返回错误。crate 里它是独立类型且只有一个变体
-/// （编码不会因为输入内容失败，只会因为缓冲不够）。
+/// `encode_slice` 的返回错误。编码不会因为输入内容失败，只会因为缓冲不够，
+/// 故只有一个变体（对齐 crate 的同名类型）。
 pub suberror EncodeSliceError {
   /// 输出缓冲不足。
   OutputSliceTooSmall
 } derive(Debug, Eq)
 
 ///|
-/// 把错误渲染成一句可读的话（展示用；**结构化字段才是契约**）。
+/// 把错误渲染成一句可读的话（**展示用**；结构化字段才是契约）。
+///
+/// 存在的理由：宿主想打印错误时不必自己 import `internal` 包
+/// （它按可见性规则不可被外部 import）。
 pub fn describe_decode_error(e : DecodeError) -> String {
   match e {
     InvalidByte(offset, byte) =>
@@ -74,45 +75,6 @@ fn to_hex(byte : Byte) -> String {
   let hi = digits[(n >> 4) & 0xF].to_int().unsafe_to_char()
   let lo = digits[n & 0xF].to_int().unsafe_to_char()
   "0x\{hi}\{lo}"
-}
-
-///|
-/// 具名构造器：`InvalidByte`。
-pub fn decode_error_invalid_byte(offset : Int, byte : Byte) -> DecodeError {
-  InvalidByte(offset, byte)
-}
-
-///|
-/// 具名构造器：`InvalidLength`。
-pub fn decode_error_invalid_length(length : Int) -> DecodeError {
-  InvalidLength(length)
-}
-
-///|
-/// 具名构造器：`InvalidLastSymbol`。
-pub fn decode_error_invalid_last_symbol(
-  offset : Int,
-  symbol : Byte,
-) -> DecodeError {
-  InvalidLastSymbol(offset, symbol)
-}
-
-///|
-/// 具名构造器：`InvalidPadding`。
-pub fn DecodeError::invalid_padding() -> DecodeError {
-  InvalidPadding
-}
-
-///|
-/// 具名构造器：输出缓冲不足（解码侧）。
-pub fn DecodeSliceError::output_slice_too_small() -> DecodeSliceError {
-  OutputSliceTooSmall
-}
-
-///|
-/// 具名构造器：输出缓冲不足（编码侧）。
-pub fn EncodeSliceError::output_slice_too_small() -> EncodeSliceError {
-  OutputSliceTooSmall
 }
 
 ///|
@@ -139,3 +101,22 @@ pub extend EncodeSliceError with @debug.Debug::{to_repr}
 ///|
 /// 见上。
 pub extend EncodeSliceError with Eq::{equal, not_equal}
+
+///|
+/// 取 `EncodeSliceError::OutputSliceTooSmall`。
+///
+/// 外壳（`encode_slice`）也要报这个错误，而枚举对**其它包**只读——
+/// 本包是定义包，故由本包提供取值入口。这不是「为测试服务的构造器」：
+/// `encode_slice` 的缓冲不足是真实用户会撞到的路径。
+pub fn EncodeSliceError::output_slice_too_small() -> EncodeSliceError {
+  OutputSliceTooSmall
+}
+
+///|
+/// 取 `DecodeError::InvalidLength`。
+///
+/// 外壳的 `decode` 在「长度估算兜底」这条不可达路径上报它（见 `facade.mbt`），
+/// 而枚举对其它包只读，故由本包提供取值入口。
+pub fn DecodeError::invalid_length(length : Int) -> DecodeError {
+  InvalidLength(length)
+}

@@ -1,9 +1,10 @@
 ///|
 /// 往返演示 + 不可解输入的错误展示。
 ///
-/// 错误展示为何不直接 `match` 变体名：那要求 import `lib/internal`，
-/// 而 internal 包按可见性规则不可被外部 import。可用的形态是 `@lib` 提供的
-/// 结构化访问器（见 S5 §4）。这里演示「拿到 offset 与出错字节」这一件事。
+/// 错误展示走 `@lib.describe`：包外**写不出** `Err(InvalidByte(..))` 这种期望值，
+/// 因为 `lib/internal` 不允许被外部 import，变体名无从解析。
+/// 想让错误变体名可用，得在**第三方包**里靠类型推导带进来——`cmd/main` 不是那样的位置
+/// （[S5 §3](docs/01-规格/S5-实施裁决与M1落地.md)）。
 fn main {
   let text = "Hello, MoonBit!"
   let encoded = @lib.encode(@utf8.encode(text))

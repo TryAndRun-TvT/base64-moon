@@ -137,7 +137,10 @@ test "matrix_encoded_len_slice_is_tight" {
     assert_eq(@lib.encode_slice(raw[:], exact), Ok(full.length()))
     if full.length() > 0 {
       let short = FixedArray::make(full.length() - 1, b'\x00')
-      @lib.expect_encode_too_small(@lib.encode_slice(raw[:], short))
+      match @lib.encode_slice(raw[:], short) {
+        Err(OutputSliceTooSmall) => ()
+        Ok(n) => fail("期望 OutputSliceTooSmall，实际 Ok(\{n})")
+      }
     }
   }
 }
@@ -152,13 +155,25 @@ test "matrix_encoded_len_slice_is_tight" {
 test "matrix_trailing_bits_invariant" {
   // `"Zg"` 与 `"Zh"` 是 RFC 原文那对「同值不同规范」的样本（S4 §4.2 引用过）。
   // 严格：`Zh` 报 `InvalidLastSymbol`；宽容：两者都解得 `b"f"`。
-  @lib.expect_invalid_last_symbol(@lib.decode(b"Zh=="[:]), 1, 104)
+  match @lib.decode(b"Zh=="[:]) {
+    Err(InvalidLastSymbol(offset, symbol)) => {
+      assert_eq(offset, 1)
+      assert_eq(symbol, b'h')
+    }
+    _ => fail("期望 InvalidLastSymbol(1, 'h')")
+  }
   assert_eq(@lib.decode(b"Zh=="[:], allow_trailing_bits=true).unwrap(), b"f")
   assert_eq(@lib.decode(b"Zg=="[:], allow_trailing_bits=true).unwrap(), b"f")
   // 3 符号形态同理：`"Zm8="` 是 `b"fo"` 的规范形；`"Zm9="` 的末符号 `9` 冗余位非零。
   // 报错 offset 是**末符号自己的下标 2**（不是 `=` 的 3）——`=` 根本不参与符号判定。
   assert_eq(@lib.decode(b"Zm8="[:]).unwrap(), b"fo")
-  @lib.expect_invalid_last_symbol(@lib.decode(b"Zm9="[:]), 2, 57)
+  match @lib.decode(b"Zm9="[:]) {
+    Err(InvalidLastSymbol(offset, symbol)) => {
+      assert_eq(offset, 2)
+      assert_eq(symbol, b'9')
+    }
+    _ => fail("期望 InvalidLastSymbol(2, '9')")
+  }
   assert_eq(@lib.decode(b"Zm9="[:], allow_trailing_bits=true).unwrap(), b"fo")
   // 关键：**改了冗余位不影响解出的字节**——这正是「不可区分」的危害。
   assert_eq(@lib.decode(b"Zg=="[:]).unwrap(), b"f")
@@ -208,12 +223,11 @@ test "matrix_padding_invariant" {
       raw,
     )
     if n % 3 != 0 {
-      @lib.expect_invalid_padding(
-        @lib.decode(
-          @utf8.encode(@lib.encode(raw))[:],
-          padding_mode=@lib.require_none_mode,
-        ),
-      )
+      let with_pad = @utf8.encode(@lib.encode(raw))
+      match @lib.decode(with_pad[:], padding_mode=@lib.require_none_mode) {
+        Err(InvalidPadding) => ()
+        _ => fail("期望 InvalidPadding")
+      }
     }
   }
 }

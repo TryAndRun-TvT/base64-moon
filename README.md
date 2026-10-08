@@ -9,7 +9,7 @@
 [![latest release](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/badge/release)](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/releases)
 [![license](https://cnb.cool/svg/badge/license?message=Apache-2.0&color=green)](./LICENSE)
 
-**项目状态**：骨架阶段（配置与工程约定已就位，实现待落地）。
+**项目状态**：M0–M5 已落地（编解码内核 + 语义矩阵 + 性能线收口），可按下面「快速开始」直接用。
 
 | | |
 |---|---|
@@ -39,12 +39,16 @@
 ## 功能特性
 
 - **纯 MoonBit 实现**，无外部依赖，可直接 `moon add` 依赖到你的项目。
+- **零分配内核 + 可选物化**：`encode_slice` / `decode_slice` 直接写调用方给定的缓冲，不产生中间 `String`。
 - **标准合规**：RFC 4648 —— 标准字母表（`+` / `/`）与 URL-safe 字母表（`-` / `_`），含/不含 padding 都可编。
 - **编码 + 解码**：`encode` 默认输出带 `=` 填充的标准串（`padding=false` 可省）；`decode` 默认按 `RequireCanonical` 校验 padding，错误**带 offset**。
 - **单一后端产物**：仅 `wasm-gc`（体积小、性能好；宿主需支持 GC 提案）。
 
-> **实现状态**：**骨架阶段**。已落地 `encode` / `decode` 与字母表变体（测试覆盖 RFC 4648 官方向量），
-> 完整的 API 细节与实现规格篇目待补齐（见 [docs/README.md §1](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md#1-实现规格)）。
+> **实现状态**：`encode` / `decode` / `encode_slice` / `decode_slice` 与两套字母表均已落地，
+> 四条解码判据（非法字节 / 结尾单符号 / 末符号冗余位 / padding）逐条有可定位的错误。
+> 测试分三层：黑盒锁公共契约、白盒锁表与内核形态、**差分基线**锁 41 个长度的逐字面量。
+> 性能线的收口（哪条优化落了、哪条实测为负收益被否）见
+> [docs/README.md §1](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md#1-实现规格)。
 
 ## 快速开始
 
@@ -68,9 +72,8 @@ import {
 ```mbt check
 ///|
 test "readme_quick_start" {
-  let bytes = b"foobar"
-  assert_eq(@lib.encode(bytes), "Zm9vYmFy")
-  @lib.expect_decoded(@lib.decode(b"Zm9vYmFy"[:]), bytes)
+  assert_eq(@lib.encode(b"foobar"), "Zm9vYmFy")
+  assert_eq(@lib.decode(b"Zm9vYmFy"[:]).unwrap(), b"foobar")
   // URL-safe 字母表：`+` / `/` 换成 `-` / `_`
   assert_eq(
     @lib.encode(b"\xfb\xff", alphabet=@lib.Alphabet::url_safe()),
@@ -78,8 +81,11 @@ test "readme_quick_start" {
   )
   // 无 padding 形态（URL-safe 场景惯例）
   assert_eq(@lib.encode(b"foob", padding=false), "Zm9vYg")
-  // 解码错误可定位：offset + 出错字节
-  @lib.expect_invalid_byte(@lib.decode(b"Zm9v!"[:]), 4, 33)
+  // 解码错误可定位，且能渲染成可读串（宿主展示用，不必 import 内部包）
+  assert_eq(
+    @lib.describe(@lib.decode(b"Zm9v!"[:]).unwrap_err()),
+    "InvalidByte(offset=4, byte=0x21)",
+  )
 }
 ```
 

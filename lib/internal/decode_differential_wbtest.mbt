@@ -57,7 +57,7 @@ fn decode_into_verdict(engine : Engine, input : BytesView) -> String {
 /// `keep` 的取法同 M5：`0..=16` 覆盖全部 12 种余数组合，其余点跨「整块 / 尾块」
 /// 与尺寸边界。任何一格不等即红——**这就是改实现时的网**。
 test "differential_decode_into_verdict" {
-  let e = Engine::standard()
+  let e = Engine::new(Alphabet::standard(), Config::default())
   assert_eq(decode_into_verdict(e, b""), "Ok()")
   assert_eq(decode_into_verdict(e, b"Cw=="[:]), "Ok(0b)")
   assert_eq(decode_into_verdict(e, b"CzA="[:]), "Ok(0b30)")
