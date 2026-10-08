@@ -1,9 +1,9 @@
 ///|
-/// 白盒：锁 `DecodeError` 的**形态**（M1 实现落地前的护栏）。
+/// 白盒：锁 `DecodeError` 的**形态**（回归护栏）。
 ///
-/// 为什么骨架期就要有这条：`suberror` 的变体一旦定下，M1 就得按此实现；
-/// 若变体被悄悄改动（如把 `InvalidByte(Int, Byte)` 退化成只带 `String`），
-/// 差异会被 M1 的几百行实现淹没。这里用最小构造 + 模式匹配把它钉死。
+/// 为什么值得单列：`suberror` 的变体若被悄悄改动（如把 `InvalidByte(Int, Byte)`
+/// 退化成只带 `String`），差异会被实现细节淹没——而**字段是可编程契约**，
+/// 不能靠「有 Err 就行」的断言兜住。这里用最小构造 + 模式匹配把它钉死。
 ///
 /// 判据来源：rust-base64 的 `DecodeError`（对照表见 S1 §3.2）。
 test "decode_error_shape_is_structured" {

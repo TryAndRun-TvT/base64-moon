@@ -9,10 +9,10 @@
 // 【黄金值出处】（AGENTS.md §三.2 铁律 1）
 //   · 全部来自 **CPython `base64`**（独立参照，非本库输出）；
 //   · 数据式子 = `det_bytes(i) = (i*37+11)&0xFF`；
-//   · 生成命令见文件末 [§ 复跑](#复跑)。
+//   · 生成命令见 [S10 §5.2](docs/01-规格/S10-去内循环落地与端到端对照.md)。
 //
 // 【为什么这里只锁「结果」】
-// 内核形态（`for k` 内循环）由 `lib/internal/decode_differential_wbtest.mbt` 锁；
+// 内核形态（4 条显式 `let` + 合并判错）由 `lib/internal/decode_differential_wbtest.mbt` 锁；
 // 本文件只锁**对外可见的结果**，两层合起来才是完整差分。
 //
 // 台账：[S10](docs/01-规格/S10-去内循环落地与端到端对照.md) §2。

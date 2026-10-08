@@ -9,7 +9,7 @@
 [![latest release](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/badge/release)](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/releases)
 [![license](https://cnb.cool/svg/badge/license?message=Apache-2.0&color=green)](./LICENSE)
 
-**项目状态**：骨架阶段（配置与工程约定已就位，实现待落地）。
+**项目状态**：M0–M5 已闭环（实现已落地，语义矩阵与差分基线在跑；性能线已收口）。
 
 | | |
 |---|---|
@@ -43,8 +43,10 @@
 - **编码 + 解码**：`encode` 默认输出带 `=` 填充的标准串（`padding=false` 可省）；`decode` 默认按 `RequireCanonical` 校验 padding，错误**带 offset**。
 - **单一后端产物**：仅 `wasm-gc`（体积小、性能好；宿主需支持 GC 提案）。
 
-> **实现状态**：**骨架阶段**。已落地 `encode` / `decode` 与字母表变体（测试覆盖 RFC 4648 官方向量），
-> 完整的 API 细节与实现规格篇目待补齐（见 [docs/README.md §1](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md#1-实现规格)）。
+> **实现状态**：`encode` / `decode` 与字母表变体、三个配置开关、定长输出形态（`encode_slice` / `decode_slice`）
+> **均已落地**；正确性由 **RFC 4648 官方向量 + CPython 定值差分基线 + 语义矩阵**三层锁住。
+> API 细节见 `moon info` 的 `.mbti`；实现规格与实测台账见
+> [docs/README.md §1](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md#1-实现规格)。
 
 ## 快速开始
 

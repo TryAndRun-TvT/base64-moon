@@ -102,11 +102,11 @@
 ## 4. 文档维护
 
 - **状态头三字段**（缺一不予合入）：`状态` | `日期：YYYY-MM-DD` | `索引：§N`。
-- **单篇 ≤800 行**：`bash scripts/test-scale.sh` 与 §7 清单共同兜底。
+- **单篇 ≤800 行**：`bash scripts/test-scale.sh` 与 §5 清单共同兜底。
 - **死链零容忍**：`bash scripts/docs-link-check.sh` 检查受版本控制 Markdown 的相对链接。
 - **章节引用门禁**：`bash scripts/docs-ref-check.sh` —— `S<N>x §M`（代号式）与
   `[标签](X.md) §M`（路径式）须在被引篇目存在该节（反引号内为「引述」不算活引用）。
-- **索引清单为生成物**：§7 由 `bash scripts/docs-index.sh --write` 生成，
+- **索引清单为生成物**：§5 由 `bash scripts/docs-index.sh --write` 生成，
   `--verify` 校验；**禁止手改行数/篇数**。
 - **日期漂移仅提示**：`bash scripts/docs-date-check.sh` 永不阻断。
 

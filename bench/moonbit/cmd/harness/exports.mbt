@@ -64,23 +64,6 @@ fn decoded_upper_bound(len : Int) -> Int {
 }
 
 ///|
-/// **端到端**编码基准：`reps` 次 `@lib.encode`（含每调用一次建引擎 + 物化 `String`）。
-///
-/// 这是「库对外承诺」那一层的数字，与上面的内核段**不同层**——
-/// 两者必须分开报，不可互推（[S7 §2.1] 要素 ①）。
-#export_name("bench_encode_e2e")
-pub fn bench_encode_e2e(n : Int, seed : Int, reps : Int) -> Int {
-  let src = det_bytes(n, seed)
-  let mut acc = 0
-  let mut r = 0
-  while r < reps {
-    acc = acc + checksum(@utf8.encode(@lib.encode(Bytes::from_array(src)))[:])
-    r = r + 1
-  }
-  acc
-}
-
-///|
 /// **往返**基准：`reps` 次 encode → decode，回传解码结果的校验和。
 ///
 /// 「往返」= 一次 encode + 一次 decode，是各侧**唯一**的统一被测量
