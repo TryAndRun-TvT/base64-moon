@@ -1,0 +1,6 @@
+// 只引入**本库**的最小使用体。
+pkgtype(kind: "executable")
+
+import {
+  "TryAndRun-TvT/base64-moon/lib",
+}

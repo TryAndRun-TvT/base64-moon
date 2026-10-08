@@ -1,0 +1,6 @@
+// 只引入 **MoonBit 官方 core** 的最小使用体（同平台对照）。
+pkgtype(kind: "executable")
+
+import {
+  "moonbitlang/core/encoding/base64",
+}

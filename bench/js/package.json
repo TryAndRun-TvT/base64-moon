@@ -1,0 +1,11 @@
+{
+  "name": "base64-bench-js",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "JS 侧基准对照（base64-js / js-base64 / node Buffer）",
+  "dependencies": {
+    "base64-js": "1.5.1",
+    "js-base64": "3.9.4"
+  }
+}

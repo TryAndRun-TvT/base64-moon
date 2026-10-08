@@ -1,0 +1,19 @@
+[package]
+name = "base64-bench-rust"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+# base64 钉**精确版本**（`=`），与 [S2/S9] 的对账前提一致：
+# 版本漂移会静默改变被测量，bench 数字就失去复现性。
+[dependencies]
+base64 = "=0.23.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

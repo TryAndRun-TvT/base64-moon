@@ -20,3 +20,12 @@
 
 # 参考仓库检出（对照/生成黄金值用，仅本地）
 /fast_qr/
+
+# ── bench/ 外部对照基准（见 bench/README.md）──
+# 装置**入库**（可复跑），产物**不入库**（AGENTS.md §一 禁构建产物入库）：
+bench/_build/
+bench/rust/target/
+bench/rust/Cargo.lock
+bench/js/node_modules/
+bench/js/package-lock.json
+bench/results.json

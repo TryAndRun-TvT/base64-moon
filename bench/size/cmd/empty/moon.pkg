@@ -1,0 +1,2 @@
+// 体积基线的包：**不 import 任何东西**。
+pkgtype(kind: "executable")

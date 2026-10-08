@@ -8,6 +8,9 @@
 .DS_Store
 /node_modules/
 /package-lock.json
+# bench/ 装置（对照基准，见 bench/README.md）——不进发布归档。
+# 连同其产物一起排除：bench/ 只是复跑装置，不是库里的一部分。
+/bench/
 # ── 发布归档额外排除 ──
 /scripts/
 /docs/
