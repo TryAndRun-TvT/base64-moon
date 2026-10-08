@@ -3,20 +3,19 @@
 ///
 /// 【契约】所有出口的签名只含 `Int`，返回 `Int`（理由见 `moon.pkg`：GC 对象取不出）。
 ///
-/// 【为什么把循环**放在被测侧**】宿主侧循环 = 每次跨界都要跨一次 JS↔wasm 边界，
+/// 【为什么把循环放在被测侧】宿主侧循环 = 每次跨界都要跨一次 JS↔wasm 边界，
 /// 且 Node 的计时粒度套在单次调用上，量到的是边界开销而非算法。
 /// 故约定：**调用方给 `reps`，被测侧自己循环 `reps` 次并回传累加值**。
-/// 这同时把「计时器唯一」（README 口径 ②）落成结构约束：被测侧**不计时**。
+/// 这同时把「计时器唯一」（bench/README.md 口径 ②）落成结构约束：被测侧**不计时**。
 ///
-/// 【内核段用 `*_slice` 而非 `encode`/`decode`】`encode` 每次调用都建引擎 + 物化
-/// `String`，端到端才该用它。内核段要对齐的是「同层对照」这一条口径
-/// （[S7 §2.1] 要素 ①）：`encode_slice` / `decode_slice` 是**零分配内核**的公共入口，
-/// 与 Rust 侧的 `encode_slice` / `decode_slice` 一一对应。
+/// 【两组被测量，不可互推】内核段（`*_slice`）不含引擎构造与物化，
+/// 端到端段（`encode` / `decode` / 往返）含。两者必须分开报，
+/// 跨实现比较只在**双方都有**的那一层做（bench/README.md 口径要素 ①）。
 
 ///|
 /// 编码**内核**基准：`reps` 次 `encode_slice`（**不含** `Engine::new`，不物化 String）。
 ///
-/// 返回写入字节数的累加和——防 DCE（README 口径 ④）。
+/// 返回写入字节数的累加和——防 DCE（口径 ④）。
 #export_name("bench_encode_slice")
 pub fn bench_encode_slice(n : Int, seed : Int, reps : Int) -> Int {
   let src = Bytes::from_array(det_bytes(n, seed))
@@ -64,6 +63,60 @@ fn decoded_upper_bound(len : Int) -> Int {
 }
 
 ///|
+/// **端到端**编码基准：`reps` 次 `@lib.encode`（含每调用一次建引擎 + 物化 `String`）。
+///
+/// 这是「库对外承诺」那一层的数字，与上面的内核段**不同层**——
+/// 两者必须分开报，不可互推（bench/README.md 口径要素 ①）。
+#export_name("bench_encode_e2e")
+pub fn bench_encode_e2e(n : Int, seed : Int, reps : Int) -> Int {
+  let src = det_bytes(n, seed)
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    acc = acc + checksum(@utf8.encode(@lib.encode(Bytes::from_array(src)))[:])
+    r = r + 1
+  }
+  acc
+}
+
+///|
+/// **只编码**基准：`reps` 次 `@lib.encode`，回传编码串校验和。
+///
+/// 与 `bench_roundtrip` 的区别：**不含 decode**。两者相减即为解码段耗时
+/// （同一物化口径下），故分向表与往返表**互相校验**。
+///
+/// 【为什么往返之外还要分向】往返把两条腿的差异**合成一个数**；
+/// 外部对照已显示本库「解码是弱腿」，只报往返的话这条结论无法从表里直接读出。
+#export_name("bench_encode_only")
+pub fn bench_encode_only(n : Int, seed : Int, reps : Int) -> Int {
+  let src = det_bytes(n, seed)
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    acc = acc + checksum(@utf8.encode(@lib.encode(Bytes::from_array(src)))[:])
+    r = r + 1
+  }
+  acc
+}
+
+///|
+/// **只解码**基准：`reps` 次 `@lib.decode`，回传解码结果校验和。
+///
+/// 输入是**被测侧自己编出来的**合法 base64（`det_bytes` → encode），
+/// 与 `bench_roundtrip` 里 decode 用同一份输入，故两者可相减。
+#export_name("bench_decode_only")
+pub fn bench_decode_only(n : Int, seed : Int, reps : Int) -> Int {
+  let encoded = @utf8.encode(@lib.encode(Bytes::from_array(det_bytes(n, seed))))
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    acc = acc + checksum(@lib.decode(encoded[:]).unwrap())
+    r = r + 1
+  }
+  acc
+}
+
+///|
 /// **往返**基准：`reps` 次 encode → decode，回传解码结果的校验和。
 ///
 /// 「往返」= 一次 encode + 一次 decode，是各侧**唯一**的统一被测量
@@ -104,49 +157,4 @@ pub fn verify_roundtrip(n : Int, seed : Int) -> Int {
 #export_name("verify_encode")
 pub fn verify_encode(n : Int, seed : Int) -> Int {
   checksum(@utf8.encode(@lib.encode(Bytes::from_array(det_bytes(n, seed))))[:])
-}
-
-// ── 分向（encode-only / decode-only）基准 ─────────────────────────────────────
-//
-// 【为什么往返之外还要分向】往返 = 编码 + 解码，把两条腿的差异**合成一个数**。
-// 外部对照（E1 §3.3）已显示本库「解码是弱腿」——但如果只报往返，
-// 这条结论就无法从表里直接读出，只能靠内核段的间接证据推断。
-// 分向表让「编码多快 / 解码多快」各自成为可引用的一行。
-//
-// 【与内核段的区别】这里是**端到端**分向（含引擎构造与物化），不是 `*_slice`。
-// 理由：内核段 JS 侧没有对应层，无法横向比；分向表要的是「6 家都能算」的那一层。
-// 内核段仍只在 MoonBit vs Rust 之间比（E1 §3.3）。
-
-///|
-/// **只编码**基准：`reps` 次 `@lib.encode`，回传编码串校验和。
-///
-/// 与 `bench_roundtrip` 的区别：**不含 decode**。两者相减即为解码段耗时
-/// （同一物化口径下），故分向表与往返表**互相校验**。
-#export_name("bench_encode_only")
-pub fn bench_encode_only(n : Int, seed : Int, reps : Int) -> Int {
-  let src = det_bytes(n, seed)
-  let mut acc = 0
-  let mut r = 0
-  while r < reps {
-    acc = acc + checksum(@utf8.encode(@lib.encode(Bytes::from_array(src)))[:])
-    r = r + 1
-  }
-  acc
-}
-
-///|
-/// **只解码**基准：`reps` 次 `@lib.decode`，回传解码结果校验和。
-///
-/// 输入是**被测侧自己编出来的**合法 base64（`det_bytes` → encode），
-/// 与 `bench_roundtrip` 里 decode 用同一份输入，故两者可相减。
-#export_name("bench_decode_only")
-pub fn bench_decode_only(n : Int, seed : Int, reps : Int) -> Int {
-  let encoded = @utf8.encode(@lib.encode(Bytes::from_array(det_bytes(n, seed))))
-  let mut acc = 0
-  let mut r = 0
-  while r < reps {
-    acc = acc + checksum(@lib.decode(encoded[:]).unwrap())
-    r = r + 1
-  }
-  acc
 }

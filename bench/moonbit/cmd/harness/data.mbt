@@ -4,9 +4,9 @@
 /// 【为什么生成式必须钉死并共享】跨语言对比的头号假象是「比的是数据搬运」。
 /// `wasm-gc` 的 `Bytes` 是 GC 数组、**没有线性内存指针**，无法从 Node 侧灌入大 buffer；
 /// 唯一干净的做法是**让被测侧自己按同一 seed 生成**。各侧（MoonBit / Rust / JS）
-/// 都实现同一个式子，「输入相同」于是可验证，而不只是约定。见 bench/README.md 口径 ①。
+/// 都实现同一个式子，「输入相同」于是可验证，而不只是约定（bench/README.md 口径 ①）。
 ///
-/// 式子与主仓差分基线**同源**（S10 §2.2 的 `det_bytes`），便于交叉引用：
+/// 式子与主仓差分基线**同源**，便于交叉引用：
 /// `b[i] = (i * 37 + 11 + seed) & 0xFF`。
 pub fn det_bytes(n : Int, seed : Int) -> FixedArray[Byte] {
   let buf = FixedArray::make(n, b'\x00')
