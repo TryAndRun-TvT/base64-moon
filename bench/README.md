@@ -31,7 +31,7 @@
 bench/
 ├── moon.work          # workspace：成员 = 主仓(..) + ./moonbit + ./size
 ├── cases.json         # 尺寸集 / 轮次 / 判据（唯一事实源，别在脚本里写死）
-├── run.mjs            # 主程序：校验 → 计时 → 出 JSON
+├── run.mjs            # 主程序：校验 → 往返计时 → **分向计时** → 出 JSON
 ├── report-size.mjs    # 体积报告（独立入口，见 §5）
 ├── results.json       # 计时产物（构建产物，不入库）
 ├── README.md          # 本文件
@@ -46,6 +46,11 @@ bench/
 │   └── size.mjs       #   体积测量工具
 └── size/              # 体积探针（空 exec / 本库 / core 三个 executable）
 ```
+
+**三个被测量（往返 / 编码 / 解码）**：`run.mjs` 出三类表——
+**往返**（encode + decode，6 家横向可比）、**编码**、**解码**（后两者是分向，
+让「哪条腿慢」可引用，见 [E2](../docs/02-证据/E2-编解码分向性能与根因.md)）。
+分向**不相减**推往返（各自独立计时，只量级互校）。
 
 **为什么是独立 workspace 而不是塞进 `lib/`**：
 
@@ -75,6 +80,21 @@ bench/
 
 **④为什么不能省**：没有回传读回，`lto = true` + `--release` 会把整个被测段删掉，
 量到的是「删掉代码有多快」。
+
+### 2.1 分向出口（往返之外的两个被测量）
+
+| 方向 | MoonBit 出口 | Rust 出口 | JS 出口 |
+|------|-------------|-----------|---------|
+| 往返 | `bench_roundtrip` | `bench_roundtrip` | `impls[].roundtrip` |
+| **编码** | `bench_encode_only` | `bench_encode_only` | `impls[].encodeE2E` |
+| **解码** | `bench_decode_only` | `bench_decode_only` | `impls[].decodeE2E` |
+| （core 对照） | `bench_core_encode_only` / `bench_core_decode_only` | — | — |
+
+**为什么分向不相减**：`encode` 与 `decode` 各自都含「建引擎 / 分缓冲 / 物化」，
+相减会把共有常数项算错两次。故三段**各自**预热、交错、取中位数，只在量级上互校。
+
+**JS 侧解码的输入**：必须是被测侧**自己编出**的合法 base64（与 harness / Rust 同源），
+否则比的是「不同输入的容错路径」。
 
 ---
 
@@ -128,7 +148,17 @@ SKIP_RUST=1 bash scripts/bench.sh    # 无 rustup 时
 SKIP_SIZE=1 bash scripts/bench.sh    # 跳过体积段
 ```
 
-前置：`moon` + `node`（必需）；`cargo`/`rustc` + `rustup target add wasm32-unknown-unknown`（Rust 段）。
+**前置（三运行时，一键）**：
+
+```bash
+bash scripts/setup-bench-runtimes.sh              # MoonBit + Rust + Node 全装
+# 或分装：setup-moonbit.sh / setup-rust.sh / setup-node.sh
+# 或只缺 Rust：SKIP_RUST=1 bash scripts/setup-bench-runtimes.sh
+```
+
+- `moon` + `node`（必需）；
+- `cargo`/`rustc` + `rustup target add wasm32-unknown-unknown`（Rust 段，见 `scripts/setup-rust.sh`）；
+- Node ≥ 20（计时器 + JS 侧对照，见 `scripts/setup-node.sh`）。
 
 **退出码**：`0` = 全绿；`1` = 跨实现校验失败（数字无意义）；`2` = 工具链缺失。
 

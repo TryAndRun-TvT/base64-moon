@@ -64,3 +64,34 @@ pub fn verify_core_roundtrip(n : Int, seed : Int) -> Int {
   }
   checksum(decoded)
 }
+
+// ── core 侧分向基准（与 §3 端到端同层，只是拆开 encode / decode）───────────────
+
+///|
+/// core 侧**只编码**：`reps` 次 `@base64.encode`，回传编码串校验和。
+#export_name("bench_core_encode_only")
+pub fn bench_core_encode_only(n : Int, seed : Int, reps : Int) -> Int {
+  let src = Bytes::from_array(det_bytes(n, seed))
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    acc = acc + checksum(@utf8.encode(@base64.encode(src))[:])
+    r = r + 1
+  }
+  acc
+}
+
+///|
+/// core 侧**只解码**：`reps` 次 `@base64.decode`，回传解码结果校验和。
+#export_name("bench_core_decode_only")
+pub fn bench_core_decode_only(n : Int, seed : Int, reps : Int) -> Int {
+  let encoded = @base64.encode(Bytes::from_array(det_bytes(n, seed)))
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    let decoded = try @base64.decode(encoded) catch { _ => return -1 }
+    acc = acc + checksum(decoded)
+    r = r + 1
+  }
+  acc
+}

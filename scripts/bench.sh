@@ -44,7 +44,10 @@ echo
 
 # ── 前置检查：缺工具**明说**，不静默降级 ────────────────────────────────────
 have moon || fail "未找到 moon（bash scripts/setup-moonbit.sh 或 export PATH=\"\$HOME/.moon/bin:\$PATH\"）"
-have node || fail "未找到 node（bench 的计时器与 JS 侧对照都需要它）"
+have node || fail "未找到 node（bench 的计时器与 JS 侧对照都需要它；见 scripts/setup-node.sh）"
+
+# 运行时不齐时指向**一键配置**脚本（setup-bench-runtimes.sh = MoonBit + Rust + Node）：
+# 缺 Rust 不致命（跳过即少一行），缺 MoonBit/Node 才致命（已在上两行拦下）。
 
 RUST_OK=1
 if [[ "${SKIP_RUST:-0}" == "1" ]]; then
@@ -54,7 +57,7 @@ elif have cargo && have rustc; then
   rustc --version | sed 's/^/    /'
 else
   echo ">> ⚠️ 未找到 cargo/rustc ⇒ 跳过 Rust 侧。装上后本行数字才会出现：" >&2
-  echo "     curl https://sh.rustup.rs -sSf | sh -s -- -y --target wasm32-unknown-unknown" >&2
+  echo "     bash scripts/setup-rust.sh   （或一键：bash scripts/setup-bench-runtimes.sh）" >&2
   RUST_OK=0
 fi
 node -v | sed 's/^/    node /'

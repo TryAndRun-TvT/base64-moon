@@ -103,3 +103,32 @@ pub extern "C" fn bench_roundtrip(n: usize, seed: u8, reps: usize) -> i32 {
     }
     acc
 }
+
+// ── 分向（encode-only / decode-only）基准 ─────────────────────────────────────
+
+/// **只编码**：`reps` 次 `STANDARD.encode`（含 `String` 物化），回传编码串校验和。
+///
+/// 与 `bench_roundtrip` 同层，只是不含 decode —— 与 MoonBit 侧 `bench_encode_only` 对齐。
+#[no_mangle]
+pub extern "C" fn bench_encode_only(n: usize, seed: u8, reps: usize) -> i32 {
+    let src = det(n, seed);
+    let mut acc = 0i32;
+    for _ in 0..reps {
+        acc = acc.wrapping_add(checksum(STANDARD.encode(&src).as_bytes()));
+    }
+    acc
+}
+
+/// **只解码**：`reps` 次 `STANDARD.decode`，回传解码结果校验和。
+///
+/// 输入是被测侧自己编出的合法 base64，与 `bench_roundtrip` 的 decode 同一份输入。
+#[no_mangle]
+pub extern "C" fn bench_decode_only(n: usize, seed: u8, reps: usize) -> i32 {
+    let enc = STANDARD.encode(det(n, seed));
+    let mut acc = 0i32;
+    for _ in 0..reps {
+        let dec = STANDARD.decode(enc.as_bytes()).expect("decode_only");
+        acc = acc.wrapping_add(checksum(&dec));
+    }
+    acc
+}
