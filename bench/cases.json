@@ -1,0 +1,11 @@
+{
+  "seed": 7,
+  "sizes": [1024, 8192, 65536, 262144],
+  "timing": {
+    "rounds": 41,
+    "warmup": 5,
+    "reps": { "small": 500, "large": 20 },
+    "smallThreshold": 8192
+  },
+  "verifySizes": [0, 1, 2, 3, 4, 7, 64, 1023, 1024, 8191, 8192, 65535, 65536]
+}

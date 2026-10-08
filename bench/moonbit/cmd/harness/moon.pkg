@@ -1,0 +1,22 @@
+// MoonBit 侧基准 harness —— **不导出公共 API，只被 Node 调用**。
+//
+// 【为什么必须是 `foreign_library` 而不是 `executable`】
+//   · `executable` + `#export_name` 实测报 `[4219]`，且会强制生成 `_start`；
+//   · `foreign_library` 无入口、无 `_start`，产物里**只有我们显式导出**的函数——
+//     正合基准所需：加载后静静等人调用。
+//
+// 【为什么跨界只走 `Int`】
+//   `wasm-gc` 的 `String` / `Bytes` 是 GC 对象，Node 侧**取不出内容**
+//   （实测：`Object.keys(s)` 为空、无 `length` 可读）。故跨界只有两类值：
+//     · `Int` 参数 / 返回值 —— 直传；
+//     · 「输出写进被测侧自己的缓冲」 —— 用校验和 `Int` 回传，见 `data.mbt`。
+//   这条同时保证了「数据在被测侧生成」，即 [S7 §2.1] 口径要素 ①。
+//
+// 构建：`moon build cmd/harness --target wasm-gc --release`（在 bench/moonbit 下）。
+pkgtype(kind: "foreign_library")
+
+import {
+  "TryAndRun-TvT/base64-moon/lib",
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
+}
