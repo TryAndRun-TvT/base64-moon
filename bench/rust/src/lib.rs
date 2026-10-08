@@ -76,19 +76,6 @@ pub extern "C" fn bench_decode_slice(n: usize, seed: u8, reps: usize) -> i32 {
     acc
 }
 
-/// **端到端**编码基准：`reps` 次 `STANDARD.encode`（含 `String` 物化）。
-///
-/// 与 MoonBit 侧 `bench_encode_e2e` 同层：都算上「引擎/内存 + 物化」。
-#[no_mangle]
-pub extern "C" fn bench_encode_e2e(n: usize, seed: u8, reps: usize) -> i32 {
-    let src = det(n, seed);
-    let mut acc = 0i32;
-    for _ in 0..reps {
-        acc = acc.wrapping_add(checksum(STANDARD.encode(&src).as_bytes()));
-    }
-    acc
-}
-
 /// **往返**基准：`reps` 次 encode → decode，回传解码结果校验和。
 ///
 /// 这是跨实现对比的**统一口径**（各侧都只导出往返）。
@@ -109,6 +96,7 @@ pub extern "C" fn bench_roundtrip(n: usize, seed: u8, reps: usize) -> i32 {
 /// **只编码**：`reps` 次 `STANDARD.encode`（含 `String` 物化），回传编码串校验和。
 ///
 /// 与 `bench_roundtrip` 同层，只是不含 decode —— 与 MoonBit 侧 `bench_encode_only` 对齐。
+/// （曾另有一个与它**逐字相同**的 `bench_encode_e2e`，两侧都不再导出：语义重复、无调用方。）
 #[no_mangle]
 pub extern "C" fn bench_encode_only(n: usize, seed: u8, reps: usize) -> i32 {
     let src = det(n, seed);

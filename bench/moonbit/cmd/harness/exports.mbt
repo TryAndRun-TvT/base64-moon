@@ -65,7 +65,8 @@ fn decoded_upper_bound(len : Int) -> Int {
 ///|
 /// **端到端**编码基准：`reps` 次 `@lib.encode`（含每调用一次建引擎 + 物化 `String`）。
 ///
-/// 这是「库对外承诺」那一层的数字，与上面的内核段**不同层**。
+/// 这是「库对外承诺」那一层的数字，与上面的内核段**不同层**——
+/// 两者必须分开报，不可互推（bench/README.md 口径要素 ①）。
 #export_name("bench_encode_e2e")
 pub fn bench_encode_e2e(n : Int, seed : Int, reps : Int) -> Int {
   let src = det_bytes(n, seed)

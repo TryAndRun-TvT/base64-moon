@@ -9,7 +9,7 @@
 [![latest release](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/badge/release)](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/releases)
 [![license](https://cnb.cool/svg/badge/license?message=Apache-2.0&color=green)](./LICENSE)
 
-**项目状态**：M0–M5 已落地（编解码内核 + 语义矩阵 + 性能线收口），可按下面「快速开始」直接用。
+**项目状态**：M0–M5 已闭环（实现已落地，语义矩阵与差分基线在跑；性能线已收口）。
 
 | | |
 |---|---|
@@ -44,10 +44,11 @@
 - **编码 + 解码**：`encode` 默认输出带 `=` 填充的标准串（`padding=false` 可省）；`decode` 默认按 `RequireCanonical` 校验 padding，错误**带 offset**。
 - **单一后端产物**：仅 `wasm-gc`（体积小、性能好；宿主需支持 GC 提案）。
 
-> **实现状态**：`encode` / `decode` / `encode_slice` / `decode_slice` 与两套字母表均已落地，
-> 四条解码判据（非法字节 / 结尾单符号 / 末符号冗余位 / padding）逐条有可定位的错误。
-> 测试分三层：黑盒锁公共契约、白盒锁表与内核形态、**差分基线**锁 41 个长度的逐字面量。
-> 性能线的收口（哪条优化落了、哪条实测为负收益被否）见
+> **实现状态**：`encode` / `decode` 与字母表变体、三个配置开关、定长输出形态（`encode_slice` / `decode_slice`）
+> **均已落地**；四条解码判据（非法字节 / 结尾单符号 / 末符号冗余位 / padding）逐条有可定位的错误。
+> 测试分三层：黑盒锁公共契约、白盒锁表与内核形态、**差分基线**锁逐长度的字面量。
+> 正确性由 **RFC 4648 官方向量 + CPython 定值差分基线 + 语义矩阵**三层锁住。
+> API 细节见 `moon info` 的 `.mbti`；实现规格与实测台账（含性能线收口：哪条优化落了、哪条被否）见
 > [docs/README.md §1](https://cnb.cool/tryandrun/moonbit_dev/base64-moon/-/blob/main/docs/README.md#1-实现规格)。
 
 ## 快速开始

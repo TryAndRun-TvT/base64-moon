@@ -14,20 +14,6 @@
 /// 故仍在同层。
 
 ///|
-/// 与 core 的**端到端**编码对照：`reps` 次 `@base64.encode`。
-#export_name("bench_core_encode_e2e")
-pub fn bench_core_encode_e2e(n : Int, seed : Int, reps : Int) -> Int {
-  let src = Bytes::from_array(det_bytes(n, seed))
-  let mut acc = 0
-  let mut r = 0
-  while r < reps {
-    acc = acc + checksum(@utf8.encode(@base64.encode(src))[:])
-    r = r + 1
-  }
-  acc
-}
-
-///|
 /// 与 core 的**端到端**往返对照：`reps` 次 encode → decode。
 #export_name("bench_core_roundtrip")
 pub fn bench_core_roundtrip(n : Int, seed : Int, reps : Int) -> Int {

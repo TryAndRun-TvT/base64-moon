@@ -2,7 +2,8 @@
 /// 内核配置：编码 / 解码的开关（对齐 rust-base64 的 `GeneralPurposeConfig`）。
 ///
 /// 纪律：这些开关是**命名参数**（`padding?` / `padding_mode?`），不是新函数——
-/// 一旦拆成 `encode_unpadded()` 之类，就是固化了 crate 已废弃的 8 个自由函数。
+/// 一旦拆成 `encode_unpadded()` 之类，就是固化了 crate 已废弃的 8 个自由函数
+/// （[S1 §9](docs/01-规格/S1-rust-base64-移植可行性分析.md) 第 3 点）。
 pub struct Config {
   /// 编码输出是否追加 `=` 填充。默认 `true`；URL-safe 场景惯例传 `false`。
   encode_padding : Bool

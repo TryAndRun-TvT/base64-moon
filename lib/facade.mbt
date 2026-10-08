@@ -254,10 +254,11 @@ pub fn decode_slice(
 }
 
 ///|
-/// `decode` 的**便利形态**：收 `String`（按 UTF-8 编码转字节视图），**非主入口**。
+/// `decode` 的**便利形态**：收 `String`（先 `@utf8.encode` 成字节，再走 `decode`），**非主入口**。
 ///
-/// 只对「本来就是 ASCII 的 base64 文本」成立。含非 ASCII 字符的 `String` 会先按
-/// UTF-8 编码再解码——对那些输入，主入口 `decode` 才是对的。
+/// 只对「本来就是 ASCII 的 base64 文本」等价（ASCII 下 UTF-8 编码是恒等变换）。
+/// 含非 ASCII 字符的 `String` 会被编码成**别的字节**再解码——那类输入应走主入口 `decode`，
+/// 自己决定字节来源（[S1 §5.3](docs/01-规格/S1-rust-base64-移植可行性分析.md)）。
 pub fn decode_string(
   text : String,
   alphabet? : Alphabet = Standard,

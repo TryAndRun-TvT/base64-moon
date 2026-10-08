@@ -344,3 +344,50 @@ test "alphabet_variants" {
   assert_eq(@lib.Alphabet::standard().is_url_safe(), false)
   assert_eq(@lib.Alphabet::url_safe().is_url_safe(), true)
 }
+
+///|
+/// `Alphabet::is_url_safe`：字母表变体开关的谓词，与 `encode` 的取值一致。
+///
+/// 这条是**公共契约**（`.mbti` 可见），此前无任何断言——补上，免得它悄悄写反。
+test "alphabet_is_url_safe_predicate" {
+  assert_eq(@lib.Alphabet::standard().is_url_safe(), false)
+  assert_eq(@lib.Alphabet::url_safe().is_url_safe(), true)
+}
+
+///|
+/// `describe` / `describe_slice_result`：把结构化错误渲染成可读串（宿主的展示入口）。
+///
+/// 这两条此前无断言。它们的价值正是「**包外**不 import internal 也能展示错误」，
+/// 故断言直接钉在**产出串**上——字段值若丢，串就对不上。
+test "describe_renderers_for_host_display" {
+  // 错误按**形状**断言（变体字段），不靠 `expect_*` 辅助——公共面已无此类符号。
+  match @lib.decode(b"Zm9v!"[:]) {
+    Err(InvalidByte(offset, byte)) => {
+      assert_eq(offset, 4)
+      assert_eq(byte, b'!')
+    }
+    _ => abort("`Zm9v!` 应以 InvalidByte(4, b'!') 拒绝")
+  }
+  assert_eq(
+    @lib.describe(@lib.decode(b"Zm9v!"[:]).unwrap_err()),
+    "InvalidByte(offset=4, byte=0x21)",
+  )
+  assert_eq(
+    @lib.describe_slice_result(
+      @lib.decode_slice(b"Zm9v"[:], FixedArray::make(3, b'\x00')),
+    ),
+    "Ok(3)",
+  )
+  assert_eq(
+    @lib.describe_slice_result(
+      @lib.decode_slice(b"Zm9v"[:], FixedArray::make(2, b'\x00')),
+    ),
+    "OutputSliceTooSmall",
+  )
+  assert_eq(
+    @lib.describe_slice_result(
+      @lib.decode_slice(b"Zm9v!"[:], FixedArray::make(2, b'\x00')),
+    ),
+    "DecodeFailed(InvalidByte(offset=4, byte=0x21))",
+  )
+}

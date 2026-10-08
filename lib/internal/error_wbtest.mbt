@@ -7,13 +7,17 @@
 // 只有在定义包内才测得到。
 //
 // 【判据来源】rust-base64 0.23.1 的 `DecodeError`（对照见 S1 §3.2）。
+// 本文件锁**变体形态**；「反查表 `-1` 约定 + 定义包内可裸写」在 `error_contract_wbtest.mbt`。
 
 ///|
-/// 白盒：锁 `DecodeError` 的**形态**——四个变体各自携带**可编程**字段
+/// 白盒：锁 `DecodeError` 的**形态**（回归护栏）——四个变体各自携带**可编程**字段
 /// （`offset` / `byte` / `length`），不是展示用字符串。
 ///
-/// 这条护栏的价值在「改动淹没」：变体若被退化（如 `InvalidByte(Int, Byte)`
-/// 退化成只带 `String`），差异会被几百行实现淹没。这里用最小构造 + 模式匹配钉死。
+/// 为什么值得单列：`suberror` 的变体若被悄悄改动（如把 `InvalidByte(Int, Byte)`
+/// 退化成只带 `String`），差异会被实现细节淹没——而**字段是可编程契约**，
+/// 不能靠「有 Err 就行」的断言兜住。这里用最小构造 + 模式匹配把它钉死。
+///
+/// 判据来源：rust-base64 的 `DecodeError`（对照表见 S1 §3.2）。
 test "decode_error_shape_is_structured" {
   let e : DecodeError = InvalidByte(3, b'!')
   match e {
