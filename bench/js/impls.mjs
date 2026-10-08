@@ -44,14 +44,18 @@ export const IMPLS = [
     kind: "js",
     roundtrip: (src) => base64js.toByteArray(base64js.fromByteArray(src)),
     encodeE2E: (src) => base64js.fromByteArray(src),
+    decodeE2E: (str) => base64js.toByteArray(str),
     encodeChecksum: (src) => checksum(asciiBytes(base64js.fromByteArray(src))),
+    decodeChecksum: (str) => checksum(base64js.toByteArray(str)),
   },
   {
     name: "js-base64",
     kind: "js",
     roundtrip: (src) => toUint8Array(fromUint8Array(src)),
     encodeE2E: (src) => fromUint8Array(src),
+    decodeE2E: (str) => toUint8Array(str),
     encodeChecksum: (src) => checksum(asciiBytes(fromUint8Array(src))),
+    decodeChecksum: (str) => checksum(toUint8Array(str)),
   },
   {
     name: "node Buffer",
@@ -62,7 +66,10 @@ export const IMPLS = [
     roundtrip: (src) =>
       new Uint8Array(Buffer.from(Buffer.from(src).toString("base64"), "base64")),
     encodeE2E: (src) => Buffer.from(src).toString("base64"),
+    decodeE2E: (str) => new Uint8Array(Buffer.from(str, "base64")),
     encodeChecksum: (src) =>
       checksum(asciiBytes(Buffer.from(src).toString("base64"))),
+    decodeChecksum: (str) =>
+      checksum(new Uint8Array(Buffer.from(str, "base64"))),
   },
 ];

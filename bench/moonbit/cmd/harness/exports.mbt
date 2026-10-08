@@ -122,3 +122,48 @@ pub fn verify_roundtrip(n : Int, seed : Int) -> Int {
 pub fn verify_encode(n : Int, seed : Int) -> Int {
   checksum(@utf8.encode(@lib.encode(Bytes::from_array(det_bytes(n, seed))))[:])
 }
+
+// ── 分向（encode-only / decode-only）基准 ─────────────────────────────────────
+//
+// 【为什么往返之外还要分向】往返 = 编码 + 解码，把两条腿的差异**合成一个数**。
+// 外部对照（E1 §3.3）已显示本库「解码是弱腿」——但如果只报往返，
+// 这条结论就无法从表里直接读出，只能靠内核段的间接证据推断。
+// 分向表让「编码多快 / 解码多快」各自成为可引用的一行。
+//
+// 【与内核段的区别】这里是**端到端**分向（含引擎构造与物化），不是 `*_slice`。
+// 理由：内核段 JS 侧没有对应层，无法横向比；分向表要的是「6 家都能算」的那一层。
+// 内核段仍只在 MoonBit vs Rust 之间比（E1 §3.3）。
+
+///|
+/// **只编码**基准：`reps` 次 `@lib.encode`，回传编码串校验和。
+///
+/// 与 `bench_roundtrip` 的区别：**不含 decode**。两者相减即为解码段耗时
+/// （同一物化口径下），故分向表与往返表**互相校验**。
+#export_name("bench_encode_only")
+pub fn bench_encode_only(n : Int, seed : Int, reps : Int) -> Int {
+  let src = det_bytes(n, seed)
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    acc = acc + checksum(@utf8.encode(@lib.encode(Bytes::from_array(src)))[:])
+    r = r + 1
+  }
+  acc
+}
+
+///|
+/// **只解码**基准：`reps` 次 `@lib.decode`，回传解码结果校验和。
+///
+/// 输入是**被测侧自己编出来的**合法 base64（`det_bytes` → encode），
+/// 与 `bench_roundtrip` 里 decode 用同一份输入，故两者可相减。
+#export_name("bench_decode_only")
+pub fn bench_decode_only(n : Int, seed : Int, reps : Int) -> Int {
+  let encoded = @utf8.encode(@lib.encode(Bytes::from_array(det_bytes(n, seed))))
+  let mut acc = 0
+  let mut r = 0
+  while r < reps {
+    acc = acc + checksum(@lib.decode(encoded[:]).unwrap())
+    r = r + 1
+  }
+  acc
+}

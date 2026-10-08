@@ -10,7 +10,7 @@
 import { writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { IMPLS, detBytes, checksum } from "./js/impls.mjs";
+import { IMPLS, detBytes, checksum, asciiBytes } from "./js/impls.mjs";
 import {
   loadCases,
   loadMoonBit,
@@ -174,6 +174,102 @@ for (size of cases.sizes) {
   console.log("");
 }
 
+// ── 第三步：分向计时（encode-only / decode-only，各自独立）──────────────────
+//
+// 【为什么往返之外还要分向】往返把编码与解码**合成一个数**，弱腿会被强腿掩盖。
+// 外部对照（docs/02-证据/E1-外部对照基线.md §3.3）已指出本库「解码是弱腿」，
+// 但那条结论只能从内核段间接读出。分向表让它各自成为一行可引用的数字。
+//
+// 【与内核段（*_slice）的区别】这里是**端到端**分向（含引擎构造 / 物化 / API 边界），
+// 因为要 6 家都能算；内核段 JS 侧没有对应层，只在 MoonBit vs Rust 之间比。
+//
+// 【同一层保证】encode-only 与 decode-only 各自独立计时，**不相减**：
+// 往返表 = encode-only 与 decode-only 的**并集耗时的近似**，
+// 三者互相校验而不互推（相减会引入引擎构造被算两次的误差）。
+
+function directionalSubjects(which) {
+  const jsEncode = (impl) => (src) => checksum(asciiBytes(impl.encodeE2E(src)));
+  const jsDecode = (impl) => (str) => checksum(impl.decodeE2E(str));
+  const subjects = [
+    {
+      name: "base64-moon",
+      kind: "wasm-gc",
+      run: (reps) =>
+        which === "encode"
+          ? moon.exports.bench_encode_only(size, cases.seed, reps)
+          : moon.exports.bench_decode_only(size, cases.seed, reps),
+    },
+    {
+      name: "moonbit-core",
+      kind: "wasm-gc",
+      run: (reps) =>
+        which === "encode"
+          ? moon.exports.bench_core_encode_only(size, cases.seed, reps)
+          : moon.exports.bench_core_decode_only(size, cases.seed, reps),
+    },
+    {
+      name: "rust-base64",
+      kind: "wasm32",
+      run: (reps) =>
+        which === "encode"
+          ? rust.exports.bench_encode_only(size, cases.seed, reps)
+          : rust.exports.bench_decode_only(size, cases.seed, reps),
+    },
+  ];
+  for (const impl of IMPLS) {
+    subjects.push({
+      name: impl.name,
+      kind: impl.kind,
+      run: (reps) => {
+        let acc = 0;
+        const src = detBytes(size, cases.seed);
+        // decode 的输入必须是被测侧自己编出的合法 base64——与 harness / Rust 侧同源。
+        const encStr = impl.encodeE2E(src);
+        const fn = which === "encode" ? jsEncode(impl) : jsDecode(impl);
+        const arg = which === "encode" ? src : encStr;
+        for (let k = 0; k < reps; k++) acc = (acc + fn(arg)) | 0;
+        return acc;
+      },
+    });
+  }
+  return subjects;
+}
+
+const directional = [];
+for (const which of ["encode", "decode"]) {
+  console.log(`=== 分向耗时 · ${which}（ms/次，交错 A/B，中位数）===`);
+  console.log(
+    "  实现".padEnd(16) + "n".padEnd(10) + "min".padEnd(12) + "p50".padEnd(12) + "max".padEnd(12) + "MB/s(p50)",
+  );
+  for (size of cases.sizes) {
+    const reps = size <= smallThreshold ? repsCfg.small : repsCfg.large;
+    const subs = directionalSubjects(which);
+    const measured = interleaved(subs, { rounds, reps, warmup });
+    const base = measured["base64-moon"].p50;
+    for (const s of subs) {
+      const m = measured[s.name];
+      const mbs = (size / 1e6) / (m.p50 / 1e3); // 分向 = 单向，吞吐直接按单向算
+      directional.push({
+        direction: which,
+        size,
+        impl: s.name,
+        kind: s.kind,
+        min: m.min,
+        p50: m.p50,
+        max: m.max,
+        ratioToMoon: m.p50 / base,
+        mbps: mbs,
+      });
+      console.log(
+        `  ${s.name.padEnd(14)}${String(size).padEnd(10)}${m.min.toFixed(5).padEnd(12)}${m.p50
+          .toFixed(5)
+          .padEnd(12)}${m.max.toFixed(5).padEnd(12)}${mbs.toFixed(0)}`,
+      );
+    }
+    console.log("");
+  }
+}
+
 // 平台限定（口径 ⑤）：数字脱离这行就没有意义。
 const meta = {
   node: process.version,
@@ -181,11 +277,11 @@ const meta = {
   seed: cases.seed,
   rounds,
   warmup,
-  note: "同机相对量；wasm-gc/wasm32 双后端；往返口径；不可与 ISSUE #3 混比",
+  note: "同机相对量；wasm-gc/wasm32 双后端；往返 + 分向（encode-only/decode-only）；不可与 ISSUE #3 混比",
 };
 console.log("平台：", JSON.stringify(meta));
 
 if (jsonPath) {
-  writeFileSync(jsonPath, JSON.stringify({ meta, results }, null, 2));
+  writeFileSync(jsonPath, JSON.stringify({ meta, results, directional }, null, 2));
   console.log(`\n已写出：${jsonPath}`);
 }
