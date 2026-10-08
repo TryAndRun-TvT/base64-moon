@@ -17,6 +17,7 @@ import {
   loadRust,
   interleaved,
 } from "./js/driver.mjs";
+import { scanSimd } from "./simd-probe.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MOON_WASM = resolve(
@@ -177,7 +178,7 @@ for (size of cases.sizes) {
 // ── 第三步：分向计时（encode-only / decode-only，各自独立）──────────────────
 //
 // 【为什么往返之外还要分向】往返把编码与解码**合成一个数**，弱腿会被强腿掩盖。
-// 外部对照（docs/02-证据/E1-外部对照基线.md §3.3）已指出本库「解码是弱腿」，
+// 外部对照（docs/02-证据/E1-外部对照基线与分向根因.md §3.3）已指出本库「解码是弱腿」，
 // 但那条结论只能从内核段间接读出。分向表让它各自成为一行可引用的数字。
 //
 // 【与内核段（*_slice）的区别】这里是**端到端**分向（含引擎构造 / 物化 / API 边界），
@@ -270,6 +271,23 @@ for (const which of ["encode", "decode"]) {
   }
 }
 
+// ── SIMD 启用状态（口径 ⑥）：谁用了向量指令，是「谁比谁快」的**必要条件** ──
+//
+// 为什么把它并进主流程：跨实现差距有两个来源——(a) 对方真的用了向量指令；
+// (b) 对方没用向量，只是内存模型/外壳更省。把 (a)/(b) 记混，结论就会从
+// 「该优化外壳」滑成「反正追不上」。故每次出表都附实测的 SIMD 状态。
+// 判据 = 解析各自 wasm 产物、数 0xFD（SIMD 前缀）指令，见 bench/simd-probe.mjs。
+const simd = {
+  "base64-moon": scanSimd(MOON_WASM),
+  "rust-base64": scanSimd(RUST_WASM),
+};
+console.log("SIMD 启用状态（0xFD 指令数，0 = 标量实现）：");
+for (const [name, r] of Object.entries(simd)) {
+  console.log(`  ${name.padEnd(14)}${r.simdOpcodeCount > 0 ? `有 ${r.simdOpcodeCount} 条` : "无（标量）"}`);
+}
+console.log("  ⇒ 本表为「标量 vs 标量」；『平台税』不含『对方用了 SIMD』这一项。");
+console.log("");
+
 // 平台限定（口径 ⑤）：数字脱离这行就没有意义。
 const meta = {
   node: process.version,
@@ -277,7 +295,10 @@ const meta = {
   seed: cases.seed,
   rounds,
   warmup,
-  note: "同机相对量；wasm-gc/wasm32 双后端；往返 + 分向（encode-only/decode-only）；不可与 ISSUE #3 混比",
+  simd: Object.fromEntries(
+    Object.entries(simd).map(([k, v]) => [k, { simdOpcodes: v.simdOpcodeCount }]),
+  ),
+  note: "同机相对量；wasm-gc/wasm32 双后端；往返 + 分向（encode-only/decode-only）；各方均为标量（见 simd 字段）；不可与 ISSUE #3 混比",
 };
 console.log("平台：", JSON.stringify(meta));
 
