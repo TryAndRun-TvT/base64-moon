@@ -16,6 +16,7 @@
 #     ③ 交错 A/B + 中位数 + min/p50/max 三值
 #     ④ 防 DCE（结果回传 / 被读）
 #     ⑤ 报告必带尺寸 + 平台限定
+#     ⑥ 报告各方的 **SIMD 启用状态**（可验证：解析产物数 0xFD；不靠读 Cargo.toml）
 #   详见 bench/README.md。
 #
 # 用法:
@@ -90,6 +91,13 @@ if (( VERIFY_ONLY )); then
 else
   node bench/run.mjs --json bench/results.json
 fi
+
+# ── ③.5 SIMD 启用状态（口径 ⑥：可验证，不靠对 Cargo.toml 的阅读）──────────
+#   为什么单列一步：跨实现差距有「用了向量指令」与「没用向量」两种来源，
+#   记混会把可攻差距说成结构性差距。本步解析各自 wasm 产物、数 0xFD 指令。
+echo
+echo ">> ③.5 SIMD 启用状态（解析 wasm 产物，判据 = 有无 0xFD 指令）"
+node bench/simd-probe.mjs
 
 # ── ④ 体积（同一把尺子：raw + gzip -9，增量口径）──────────────────────────
 if (( ! VERIFY_ONLY )) && [[ "${SKIP_SIZE:-0}" != "1" ]]; then
