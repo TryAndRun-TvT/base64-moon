@@ -43,6 +43,11 @@ const rows = [
     ...sz(resolve(B, "TryAndRun-TvT/base64-moon-size/cmd/usecore/usecore.wasm")),
   },
   {
+    group: "MoonBit（同运行时，可比）",
+    label: "gmlewis/base64（第三方）",
+    ...sz(resolve(B, "TryAndRun-TvT/base64-moon-size/cmd/usegmlewis/usegmlewis.wasm")),
+  },
+  {
     group: "Rust（不同运行时，仅参照）",
     label: "rust-base64 cdylib",
     ...sz(resolve(HERE, "rust/target/wasm32-unknown-unknown/release/base64_bench_rust.wasm")),
@@ -77,4 +82,4 @@ console.log(`
   · 增量 = raw − 空 exec（${base.raw} B）；基线那行增量恒为 0。
   · gzip -9 会把 <200 B 的文件压得**略大**（gzip 头开销），故基线行 gzip > raw 属正常。
   · 组间不可比：Rust 没有 GC 运行时，JS 报的是源码而非产物。
-  · 同组内：本库增量 ${rows[1].raw - base.raw} B vs core ${rows[2].raw - base.raw} B。`);
+  · 同组内：本库增量 ${rows[1].raw - base.raw} B vs core ${rows[2].raw - base.raw} B vs gmlewis ${rows[3].raw - base.raw} B。`);

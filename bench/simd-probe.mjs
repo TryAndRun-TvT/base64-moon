@@ -30,9 +30,11 @@ import { dirname, resolve } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-/** 默认探的三个产物：本库 harness / Rust 对照 / 官方 core 对照（后两者同名不同包）。 */
+/** 默认探的产物：MoonBit 侧 harness / Rust 对照。
+ *  MoonBit 侧三家（本库 / core / gmlewis）**编进同一个 harness 产物**，故那一行代表的是
+ *  「MoonBit 侧全部实现合计 0 条 SIMD」；Rust 侧另属一个产物。 */
 const DEFAULT_TARGETS = [
-  ["base64-moon（本库，wasm-gc）",
+  ["MoonBit harness（本库 + core + gmlewis，wasm-gc）",
     resolve(HERE, "_build/wasm-gc/release/build/TryAndRun-TvT/base64-moon-bench/cmd/harness/harness.wasm")],
   ["rust-base64 0.23.1（wasm32-unknown-unknown）",
     resolve(HERE, "rust/target/wasm32-unknown-unknown/release/base64_bench_rust.wasm")],

@@ -29,3 +29,6 @@ bench/rust/Cargo.lock
 bench/js/node_modules/
 bench/js/package-lock.json
 bench/results.json
+# moon 依赖缓存（含 gmlewis/base64 等第三方源码；构建产物，不入库）
+bench/.mooncakes/
+.mooncakes/

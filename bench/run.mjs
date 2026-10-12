@@ -57,6 +57,7 @@ const verifyRows = [];
 const VERIFIED_IMPLS = [
   "base64-moon",
   "moonbit-core",
+  "gmlewis/base64",
   "rust-base64",
   ...IMPLS.map((i) => i.name),
 ];
@@ -67,6 +68,7 @@ for (const n of cases.verifySizes) {
   const encChecks = [
     ["base64-moon", moon.exports.verify_encode(n, s)],
     ["moonbit-core", moon.exports.verify_core_encode(n, s)],
+    ["gmlewis/base64", moon.exports.verify_gmlewis_encode(n, s)],
     ["rust-base64", rust.exports.verify_encode(n, s)],
     ...IMPLS.map((i) => [i.name, i.encodeChecksum(src)]),
   ];
@@ -74,6 +76,7 @@ for (const n of cases.verifySizes) {
   const rtChecks = [
     ["base64-moon", moon.exports.verify_roundtrip(n, s)],
     ["moonbit-core", moon.exports.verify_core_roundtrip(n, s)],
+    ["gmlewis/base64", moon.exports.verify_gmlewis_roundtrip(n, s)],
     ["rust-base64", rust.exports.verify_roundtrip(n, s)],
     ...IMPLS.map((i) => [i.name, checksum(i.roundtrip(src))]),
   ];
@@ -123,6 +126,11 @@ const subjects = [
     name: "moonbit-core",
     kind: "wasm-gc",
     run: (reps) => moon.exports.bench_core_roundtrip(size, cases.seed, reps),
+  },
+  {
+    name: "gmlewis/base64",
+    kind: "wasm-gc",
+    run: (reps) => moon.exports.bench_gmlewis_roundtrip(size, cases.seed, reps),
   },
   {
     name: "rust-base64",
@@ -182,7 +190,7 @@ for (size of cases.sizes) {
 // 但那条结论只能从内核段间接读出。分向表让它各自成为一行可引用的数字。
 //
 // 【与内核段（*_slice）的区别】这里是**端到端**分向（含引擎构造 / 物化 / API 边界），
-// 因为要 6 家都能算；内核段 JS 侧没有对应层，只在 MoonBit vs Rust 之间比。
+// 因为要 7 家都能算；内核段 JS 侧没有对应层，只在 MoonBit vs Rust 之间比。
 //
 // 【同一层保证】encode-only 与 decode-only 各自独立计时，**不相减**：
 // 往返表 = encode-only 与 decode-only 的**并集耗时的近似**，
@@ -207,6 +215,14 @@ function directionalSubjects(which) {
         which === "encode"
           ? moon.exports.bench_core_encode_only(size, cases.seed, reps)
           : moon.exports.bench_core_decode_only(size, cases.seed, reps),
+    },
+    {
+      name: "gmlewis/base64",
+      kind: "wasm-gc",
+      run: (reps) =>
+        which === "encode"
+          ? moon.exports.bench_gmlewis_encode_only(size, cases.seed, reps)
+          : moon.exports.bench_gmlewis_decode_only(size, cases.seed, reps),
     },
     {
       name: "rust-base64",
@@ -278,7 +294,9 @@ for (const which of ["encode", "decode"]) {
 // 「该优化外壳」滑成「反正追不上」。故每次出表都附实测的 SIMD 状态。
 // 判据 = 解析各自 wasm 产物、数 0xFD（SIMD 前缀）指令，见 bench/simd-probe.mjs。
 const simd = {
-  "base64-moon": scanSimd(MOON_WASM),
+  // MoonBit 侧三家（本库 / core / gmlewis）共用一个 harness 产物，故这一格
+  // 代表「MoonBit 侧全部实现合计」的 SIMD 指令数。
+  "MoonBit harness（本库+core+gmlewis）": scanSimd(MOON_WASM),
   "rust-base64": scanSimd(RUST_WASM),
 };
 console.log("SIMD 启用状态（0xFD 指令数，0 = 标量实现）：");

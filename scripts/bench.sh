@@ -72,6 +72,7 @@ if (( ! VERIFY_ONLY )) && [[ "${SKIP_SIZE:-0}" != "1" ]]; then
   (cd bench && moon build size/cmd/empty --target wasm-gc --release)
   (cd bench && moon build size/cmd/uselib --target wasm-gc --release)
   (cd bench && moon build size/cmd/usecore --target wasm-gc --release)
+  (cd bench && moon build size/cmd/usegmlewis --target wasm-gc --release)
 fi
 
 # ── ② 构建 Rust 侧（钉 =0.23.1；wasm32-unknown-unknown）───────────────────

@@ -1,6 +1,6 @@
 # bench · 外部对照基准（口径与用法）
 
-> **状态**：现行　｜　日期：2026-10-11　｜　索引：[docs/README.md](../docs/README.md) §1.5（证据篇入口）
+> **状态**：现行　｜　日期：2026-10-12　｜　索引：[docs/README.md](../docs/README.md) §1.5（证据篇入口）
 
 > 面向：**要复跑性能数字的人** / **要改这个框架的人**。
 > 本文件只讲**口径与结构**；实测数字与结论见
@@ -36,20 +36,24 @@ bench/
 ├── simd-probe.mjs     # SIMD 启用探针（口径 ⑥，解析产物数 0xFD）
 ├── results.json       # 计时产物（构建产物，不入库）
 ├── README.md          # 本文件
-├── moonbit/           # MoonBit 侧 harness
-│   ├── moon.mod       #   独立模块，路径依赖主仓
+├── moonbit/           # MoonBit 侧 harness（本库 + core + gmlewis 三家同一产物）
+│   ├── moon.mod       #   独立模块，路径依赖主仓 + 钉 gmlewis/base64@0.16.13
 │   └── cmd/harness/   #   pkgtype = foreign_library，见 §3
+│       ├── data.mbt   #   同数据式 det_bytes + 校验和（口径 ①/④ 的落点）
+│       ├── exports.mbt#   本库出口（往返 / 分向 / 内核段）
+│       ├── core.mbt   #   官方 core 出口
+│       └── gmlewis.mbt#   第三方 gmlewis/base64 出口（同门对照）
 ├── rust/              # rust-base64 对照（base64 =0.23.1，精确钉版）
 ├── js/                # JS 对照（base64-js / js-base64 / node Buffer）
 │   ├── package.json   #   钉死版本
 │   ├── impls.mjs      #   各实现：同数据式、同校验和式
 │   ├── driver.mjs     #   **唯一计时器**（hrtime.bigint）
 │   └── size.mjs       #   体积测量工具
-└── size/              # 体积探针（空 exec / 本库 / core 三个 executable）
+└── size/              # 体积探针（空 exec / 本库 / core / gmlewis 四个 executable）
 ```
 
 **三个被测量（往返 / 编码 / 解码）**：`run.mjs` 出三类表——
-**往返**（encode + decode，6 家横向可比）、**编码**、**解码**（后两者是分向，
+**往返**（encode + decode，7 家横向可比）、**编码**、**解码**（后两者是分向，
 让「哪条腿慢」可引用，见 [E1](../docs/02-证据/E1-外部对照基线与分向根因.md)）。
 分向**不相减**推往返（各自独立计时，只量级互校）。
 
@@ -90,7 +94,7 @@ bench/
 
 | 实现 | 产物 | `0xFD` 指令数 | 判定 |
 |------|------|:---:|------|
-| **base64-moon**（本库 harness） | wasm-gc | **0** | 标量——本库**从不**自动向量化（[S1 §5.1](../docs/01-规格/S1-rust-base64-移植可行性分析.md)） |
+| **MoonBit 侧三家**（本库 + core + gmlewis） | wasm-gc | **0** | 标量——三家**共用一个 harness 产物**，合计 0；本库**从不**自动向量化（[S1 §5.1](../docs/01-规格/S1-rust-base64-移植可行性分析.md)） |
 | **rust-base64 0.23.1** | wasm32-unknown-unknown | **0** | 标量——见下方两条门，**两条都不满足** |
 
 **为什么 Rust 侧是 0**（两条独立的门，任一不满足即标量）：
@@ -160,7 +164,8 @@ cd bench/rust && RUSTFLAGS="-C target-feature=+simd128" \
 ## 4. 一致性校验：先证明各家在算同一件事
 
 计时之前，`run.mjs` 会对 13 个尺寸比对**编码串校验和 + 往返校验和**，
-五家（base64-moon / rust-base64 / base64-js / js-base64 / node Buffer）**逐位相同**才算过。
+七家（base64-moon / moonbit-core / **gmlewis/base64** / rust-base64 / base64-js / js-base64 / node Buffer）
+**逐位相同**才算过。
 
 **这是框架的承重墙**：没有它，后面所有数字都可能是「各自算了不同的东西」。
 它已经真的抓到过一个 bug——JS 侧把 `new Uint8Array(str, "base64")` 的第二个参数
@@ -175,7 +180,7 @@ cd bench/rust && RUSTFLAGS="-C target-feature=+simd128" \
   绝对值里绝大部分是**运行时**（GC、字符串原语），各实现共有，比它没意义。
 - **raw + gzip -9 都报**：分发走压缩体积，但两者排序不一定一致。
 - **分组、组间不比倍数**：
-  - MoonBit 组（本库 vs core）—— 同运行时，**最干净**；
+  - MoonBit 组（本库 vs core vs gmlewis）—— 同运行时，**最干净**；
   - Rust 组 —— 没有 GC 运行时，仅参照；
   - JS 组 —— 报的是**源码**不是产物，不同量纲，仅参照。
 - `gzip` 对 <200 B 文件会**变大**（gzip 头开销），基线行 `gzip > raw` 属正常。
@@ -210,19 +215,21 @@ bash scripts/setup-bench-runtimes.sh              # MoonBit + Rust + Node 全装
 
 ---
 
-## 6.5 复跑记录（跨机稳定性）
+## 6.5 复跑记录（跨轮 / 跨机稳定性）
 
-框架的价值之一是「换个环境复跑，结论不翻车」。目前有两次独立复跑记录，
-**CPU 不同**（换机），**六家比值漂移 ≤ ~8%**，结论与排序全部保持：
+框架的价值之一是「换个环境复跑，结论不翻车」。目前有三轮记录，
+**比值漂移 ≤ ~8%**，结论与排序全部保持：
 
-| 轮次 | 日期 | CPU | 往返比值是否同向 | 出处 |
-|------|------|-----|:---:|------|
-| 首次 | 2026-10-08 | AMD EPYC 9K65 192-Core | — （基线） | [E1](../docs/02-证据/E1-外部对照基线与分向根因.md) §3/§4 |
-| 复跑 | 2026-10-11 | AMD EPYC 9754 128-Core | ✅ 同向、幅度 ±8% 内 | [E1](../docs/02-证据/E1-外部对照基线与分向根因.md) §10 |
+| 轮次 | 日期 | CPU | 家数 | 往返比值是否同向 | 出处 |
+|------|------|-----|:---:|:---:|------|
+| 首次 | 2026-10-08 | AMD EPYC 9K65 192-Core | 6 | — （基线） | [E1](../docs/02-证据/E1-外部对照基线与分向根因.md) §3/§4 |
+| 复跑 | 2026-10-11 | AMD EPYC 9754 128-Core | 6 | ✅ 同向、±8% 内 | [E1](../docs/02-证据/E1-外部对照基线与分向根因.md) §10 |
+| **本轮** | **2026-10-12** | AMD EPYC 9K65 192-Core | **7**（+ gmlewis） | ✅ 同向 | [E1](../docs/02-证据/E1-外部对照基线与分向根因.md) §10.6 |
 
 **这验证了三条纪律确有效**：① 数据在被测侧生成（换机后输入仍逐位一致）；
 ③ 交错 A/B + 中位数（换机后单轮 `max/min` 漂移被均摊）；⑥ SIMD 状态随表报出
-（两次都报「0 条 SIMD 指令 ⇒ 标量 vs 标量」）。
+（三轮都报「0 条 SIMD 指令 ⇒ 标量 vs 标量」）；
+跨轮加一家（gmlewis）后校验和仍逐位一致（第 7 家不是「换个数字」，是**多一个证人**）。
 
 **复跑自身即证据**：`bash scripts/bench.sh` 一条命令、退出码 0/1/2 可判；
 跨机同向说明「跑一次得出的绝对值不可跨机比」，但「各家排序 + 分向结论」可跨机复制。
