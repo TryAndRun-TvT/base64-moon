@@ -1,0 +1,6 @@
+// 只引入 **gmlewis/base64** 的最小使用体（同平台第三方对照）。
+pkgtype(kind: "executable")
+
+import {
+  "gmlewis/base64" @gmlewis,
+}

@@ -17,6 +17,7 @@ pkgtype(kind: "foreign_library")
 
 import {
   "TryAndRun-TvT/base64-moon/lib",
+  "gmlewis/base64" @gmlewis,
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/encoding/utf8",
 }
