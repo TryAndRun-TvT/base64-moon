@@ -25,7 +25,7 @@
 /// 对齐 crate 的 `GeneralPurposeEstimate::new`：`(len / 4 + (len % 4 > 0)) * 3`。
 /// 上界而非精确值——最多多算 2 字节，但保证「一定够」。
 /// 实测对照：0→0、1..4→3、5..8→6、9→9。
-pub fn decoded_len_estimate(input_len : Int) -> Int {
+pub fn decoded_len_estimate(input_len : Int32) -> Int32 {
   let rem = input_len % 4
   (input_len / 4 + (if rem > 0 { 1 } else { 0 })) * 3
 }
@@ -53,7 +53,7 @@ pub fn decode_into(
   engine : Engine,
   input : BytesView,
   out : FixedArray[Byte],
-) -> Result[Int, DecodeSliceError] {
+) -> Result[Int32, DecodeSliceError] {
   let n = input.length()
   let rem = n % 4
   let table = engine.decode_table
@@ -126,9 +126,9 @@ pub fn decode_into(
 /// 反向：全 `b ∈ [0,63]` 时 `acc = b0<<18 | …` 上界 `0xFFFFFF`（24 位），恒 ≥ 0。
 /// **全部 65⁴ = 17 850 625 种组合穷举验证过**（复跑见 S10 §5），故等价。
 fn locate_invalid_byte(
-  table : FixedArray[Int],
+  table : FixedArray[Int32],
   input : BytesView,
-  start : Int,
+  start : Int32,
 ) -> DecodeSliceError {
   for k = 0; k < 4; k = k + 1 {
     if table[input[start + k].to_int()] < 0 {
@@ -150,16 +150,16 @@ fn locate_invalid_byte(
 /// 参数里的 `start` / `written` 是**绝对坐标**：`input[start..]` 才是尾巴，
 /// `out[written..]` 才是可写区。错误 offset 一律用绝对下标。
 pub fn decode_suffix(
-  table : FixedArray[Int],
+  table : FixedArray[Int32],
   padding : Byte,
   config : Config,
   input : BytesView,
-  start : Int,
-  written : Int,
+  start : Int32,
+  written : Int32,
   out : FixedArray[Byte],
-) -> Result[Int, DecodeSliceError] {
+) -> Result[Int32, DecodeSliceError] {
   let n = input.length()
-  let morsels : FixedArray[Int] = FixedArray::make(4, 0)
+  let morsels : FixedArray[Int32] = FixedArray::make(4, 0)
   let mut morsels_count = 0
   let mut padding_count = 0
   let mut first_padding_offset = 0
@@ -214,7 +214,7 @@ pub fn decode_suffix(
   // 直接把最高位当符号，于是 `>> 24` 抽出负数、`<< 8` 丢掉 0x80——实测表现为
   // `0xfb 0x7f`（应为 `0xfb 0xff`）。`UInt` 是 32 位无符号，与 crate 的 `u32` 对齐。
   let leftover_bytes = morsels_count * 6 / 8
-  let mut packed : UInt = (morsels[0].reinterpret_as_uint() << 26) |
+  let mut packed : UInt32 = (morsels[0].reinterpret_as_uint() << 26) |
     (morsels[1].reinterpret_as_uint() << 20) |
     (morsels[2].reinterpret_as_uint() << 14) |
     (morsels[3].reinterpret_as_uint() << 8)
@@ -223,7 +223,7 @@ pub fn decode_suffix(
   //   2 符号 → 1 字节 → 掩码 0x00FFFFFF
   //   3 符号 → 2 字节 → 掩码 0x0000FFFF
   //   4 符号 → 3 字节 → 掩码 0x00000000（没有冗余位）
-  let mask : UInt = if leftover_bytes >= 4 {
+  let mask : UInt32 = if leftover_bytes >= 4 {
     0U
   } else {
     0xFFFFFFFFU >> (leftover_bytes * 8)

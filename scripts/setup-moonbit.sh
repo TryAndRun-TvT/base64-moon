@@ -18,7 +18,11 @@ curl -fsSL https://cli.moonbitlang.cn/install/unix.sh | bash
 export PATH="$HOME/.moon/bin:$PATH"
 moon version
 
-MOON_EXPECTED_VERSION="${MOON_EXPECTED_VERSION:-0.1.20260920}"
+# 版本变更记录（升位时在此追加一行；口径见 docs/03-过程/moonbit-版本适配记录.md）：
+#   0.1.20260920 → 0.1.20261012（Issue #29）：新 fmt 把 `Int` 归一为 `Int32`、命名参数声明
+#   `x?` 归一为 `x~`（`.mbti` 接口快照逐字节不变 ⇒ 零 API 影响）；新增 `--warn-list +a`
+#   可暴露且**默认关闭**的告警（unnecessary_view_op / missing_invariant / missing_reasoning 等）。
+MOON_EXPECTED_VERSION="${MOON_EXPECTED_VERSION:-0.1.20261012}"
 actual="$(moon version | head -1 | awk '{print $2}')"
 
 if [[ "$actual" == "$MOON_EXPECTED_VERSION" ]]; then

@@ -14,7 +14,7 @@ pub struct Engine {
   alphabet : Alphabet
   config : Config
   /// 256 项反查表；`-1` = 非法字节。
-  decode_table : FixedArray[Int]
+  decode_table : FixedArray[Int32]
   /// 64 项编码表；索引即 6 位值。
   encode_table : FixedArray[Byte]
 }

@@ -11,10 +11,10 @@
 ///
 /// 前置：`out` 的剩余空间足以容纳 padding（调用方按含 padding 的目标长度算过）。
 pub fn add_padding(
-  written : Int,
+  written : Int32,
   padding : Byte,
   out : FixedArray[Byte],
-) -> Int {
+) -> Int32 {
   let pad_bytes = (4 - written % 4) % 4
   for i = 0; i < pad_bytes; i = i + 1 {
     out[written + i] = padding

@@ -141,8 +141,8 @@ fn engine(
 /// ```
 pub fn encode(
   data : Bytes,
-  alphabet? : Alphabet = Standard,
-  padding? : Bool = true,
+  alphabet~ : Alphabet = Standard,
+  padding~ : Bool = true,
 ) -> String {
   let engine = engine(alphabet, padding, require_canonical_mode, false)
   let view = data[:]
@@ -167,7 +167,7 @@ pub fn encode(
 ///
 /// 内核不写 padding，故「缓冲够不够」必须先按这个目标长度判——
 /// 否则 `padding=true` 时会在 `add_padding` 里越界写。
-fn encode_target_len(n : Int, padding : Bool) -> Int {
+fn encode_target_len(n : Int32, padding : Bool) -> Int32 {
   if padding {
     (n + 2) / 3 * 4
   } else {
@@ -185,9 +185,9 @@ fn encode_target_len(n : Int, padding : Bool) -> Int {
 pub fn encode_slice(
   data : BytesView,
   out : FixedArray[Byte],
-  alphabet? : Alphabet = Standard,
-  padding? : Bool = true,
-) -> Result[Int, EncodeSliceError] {
+  alphabet~ : Alphabet = Standard,
+  padding~ : Bool = true,
+) -> Result[Int32, EncodeSliceError] {
   let need = encode_target_len(data.length(), padding)
   if out.length() < need {
     return Err(@internal.EncodeSliceError::output_slice_too_small())
@@ -213,9 +213,9 @@ pub fn encode_slice(
 /// ```
 pub fn decode(
   input : BytesView,
-  alphabet? : Alphabet = Standard,
-  padding_mode? : DecodePaddingMode = require_canonical_mode,
-  allow_trailing_bits? : Bool = false,
+  alphabet~ : Alphabet = Standard,
+  padding_mode~ : DecodePaddingMode = require_canonical_mode,
+  allow_trailing_bits~ : Bool = false,
 ) -> Result[Bytes, DecodeError] {
   let engine = engine(alphabet, true, padding_mode, allow_trailing_bits)
   let out = FixedArray::make(
@@ -245,10 +245,10 @@ pub fn decode(
 pub fn decode_slice(
   input : BytesView,
   out : FixedArray[Byte],
-  alphabet? : Alphabet = Standard,
-  padding_mode? : DecodePaddingMode = require_canonical_mode,
-  allow_trailing_bits? : Bool = false,
-) -> Result[Int, DecodeSliceError] {
+  alphabet~ : Alphabet = Standard,
+  padding_mode~ : DecodePaddingMode = require_canonical_mode,
+  allow_trailing_bits~ : Bool = false,
+) -> Result[Int32, DecodeSliceError] {
   let engine = engine(alphabet, true, padding_mode, allow_trailing_bits)
   @internal.decode_into(engine, input, out)
 }
@@ -261,9 +261,9 @@ pub fn decode_slice(
 /// 自己决定字节来源（[S1 §5.3](docs/01-规格/S1-rust-base64-移植可行性分析.md)）。
 pub fn decode_string(
   text : String,
-  alphabet? : Alphabet = Standard,
-  padding_mode? : DecodePaddingMode = require_canonical_mode,
-  allow_trailing_bits? : Bool = false,
+  alphabet~ : Alphabet = Standard,
+  padding_mode~ : DecodePaddingMode = require_canonical_mode,
+  allow_trailing_bits~ : Bool = false,
 ) -> Result[Bytes, DecodeError] {
   decode(@utf8.encode(text)[:], alphabet~, padding_mode~, allow_trailing_bits~)
 }
@@ -280,7 +280,7 @@ pub fn describe(e : DecodeError) -> String {
 
 ///|
 /// 把 `decode_slice` 的结果渲染成一句可读的话（宿主/调试用）。
-pub fn describe_slice_result(r : Result[Int, DecodeSliceError]) -> String {
+pub fn describe_slice_result(r : Result[Int32, DecodeSliceError]) -> String {
   match r {
     Ok(n) => "Ok(" + n.to_string() + ")"
     Err(e) =>
