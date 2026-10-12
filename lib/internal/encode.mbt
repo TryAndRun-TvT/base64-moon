@@ -12,7 +12,7 @@
 /// 实测对照（crate `encoded_len(n, true)`）：0→0、1→4、2→4、3→4、4→8、7→12。
 ///
 /// 定长输出 API（`encode_slice`）靠它预先分配——这是零分配能成立的前提。
-pub fn encoded_len(input : BytesView) -> Int {
+pub fn encoded_len(input : BytesView) -> Int32 {
   (input.length() + 2) / 3 * 4
 }
 
@@ -30,7 +30,7 @@ pub fn encode_into(
   engine : Engine,
   input : BytesView,
   out : FixedArray[Byte],
-) -> Int {
+) -> Int32 {
   let table = engine.encode_table
   let n = input.length()
   let mut i = 0

@@ -25,7 +25,7 @@
 ///|
 /// 确定性数据源：`raw(i) = (i * 37 + 11) & 0xFF`。
 /// 不用 `@random` 的理由：它依赖执行顺序（AGENTS.md §三.2 铁律 7），且黄金值会漂移。
-fn det_bytes(n : Int) -> Bytes {
+fn det_bytes(n : Int32) -> Bytes {
   let a = FixedArray::make(n, b'\x00')
   for i = 0; i < n; i = i + 1 {
     a[i] = ((i * 37 + 11) & 0xFF).to_byte()
@@ -37,8 +37,8 @@ fn det_bytes(n : Int) -> Bytes {
 /// 长度扫描集：`0..=64` 逐长度 + 跨越「整组 / 大尺寸」的边界点。
 /// 「3 字节 → 4 符号」与 padding 的周期最小公倍数是 12，故 `0..=64` 已覆盖
 /// 全部 12 种余数组合；大尺寸点是为了让「整块 vs 尾块」的分界也进矩阵。
-fn det_lengths() -> Array[Int] {
-  let xs : Array[Int] = []
+fn det_lengths() -> Array[Int32] {
+  let xs : Array[Int32] = []
   for n = 0; n <= 64; n = n + 1 {
     xs.push(n)
   }

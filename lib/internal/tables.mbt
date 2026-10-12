@@ -10,7 +10,7 @@
 ///
 /// `-1` 是解码判定 `InvalidByte` 的唯一依据。**padding 字符也必须是 `-1`**：
 /// 它由位置判据单独处理，若与合法符号混同，`"=Zm9v"` 这类输入会变成合法解码。
-pub fn build_decode_table(alphabet : Alphabet) -> FixedArray[Int] {
+pub fn build_decode_table(alphabet : Alphabet) -> FixedArray[Int32] {
   let table = FixedArray::make(256, -1)
   for i = 0; i < 64; i = i + 1 {
     table[alphabet.symbols[i].to_int()] = i

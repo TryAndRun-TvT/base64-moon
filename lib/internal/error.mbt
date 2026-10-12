@@ -14,14 +14,14 @@
 pub suberror DecodeError {
   /// 输入中混入了非字母表字节（padding 也算非法，除非它在合法位置）。
   /// `offset` = 0 基下标，`byte` = 原始字节。
-  InvalidByte(Int, Byte)
+  InvalidByte(Int32, Byte)
   /// 有效符号总数 `% 4 == 1`（RFC 4648 §3.5：末尾不可能只剩 1 个有效符号）。
   ///
   /// 字段是**输入总长**，不是下标——实测 `"AAAAZ"` → `InvalidLength(5)`。
-  InvalidLength(Int)
+  InvalidLength(Int32)
   /// 末尾符号的**低位冗余位非零**——符号在表里合法，但它编码的位被丢弃了。
   /// 例：`"Zh=="` → `InvalidLastSymbol(1, b'h')`。
-  InvalidLastSymbol(Int, Byte)
+  InvalidLastSymbol(Int32, Byte)
   /// padding 数量 / 位置不符合所选 `DecodePaddingMode`，例：`"Zg"` 在 `RequireCanonical` 下。
   InvalidPadding
 } derive(Debug, Eq)
@@ -117,6 +117,6 @@ pub fn EncodeSliceError::output_slice_too_small() -> EncodeSliceError {
 ///
 /// 外壳的 `decode` 在「长度估算兜底」这条不可达路径上报它（见 `facade.mbt`），
 /// 而枚举对其它包只读，故由本包提供取值入口。
-pub fn DecodeError::invalid_length(length : Int) -> DecodeError {
+pub fn DecodeError::invalid_length(length : Int32) -> DecodeError {
   InvalidLength(length)
 }
