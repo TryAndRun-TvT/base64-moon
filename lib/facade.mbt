@@ -156,7 +156,7 @@ pub fn encode(
   }
   // 容量按**字节**给：`StringBuilder` 内部是 `FixedArray[UInt16]`（每槽 2 字节），
   // 故 `size_hint = 2 * 符号数` 才恰好装满；传「符号数」只装一半，仍要增长一次。
-  // 实测收益与口径见 S12 §2（端到端编码 0.57–0.88×，输出逐字节不变）。
+  // 实测收益与口径见 S12 §3（跨产物 A/B 端到端编码 0.75–0.78×，输出逐字节不变）。
   let sb = StringBuilder(size_hint=2 * total)
   for i = 0; i < total; i = i + 1 {
     sb.write_char(out[i].to_int().unsafe_to_char())
